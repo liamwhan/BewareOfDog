@@ -1,6 +1,7 @@
-# BewareOfDog
-
+# Beware Of Dog
 REST API Debugger - An Electron application for debugging REST APIs.
+
+![Beware of Dog Logo](bod.png)
 
 ## Features
 

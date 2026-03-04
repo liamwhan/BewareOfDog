@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, nativeImage } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
 
@@ -6,9 +6,13 @@ let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
   const preloadPath = join(__dirname, '../preload/index.cjs')
+  const iconPath = join(__dirname, '../../bod.png')
+  const icon = nativeImage.createFromPath(iconPath)
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    icon: icon.isEmpty() ? undefined : icon,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
