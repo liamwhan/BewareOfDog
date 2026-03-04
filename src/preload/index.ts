@@ -6,7 +6,9 @@ const api = {
   fileRead: (path: string) => ipcRenderer.invoke('file:read', path),
   fileWrite: (path: string, content: string) => ipcRenderer.invoke('file:write', path, content),
   fileExists: (path: string) => ipcRenderer.invoke('file:exists', path),
-  appGetPath: (name: string) => ipcRenderer.invoke('app:getPath', name)
+  appGetPath: (name: string) => ipcRenderer.invoke('app:getPath', name),
+  workspaceLoad: () => ipcRenderer.invoke('workspace:load'),
+  workspaceSave: (content: string) => ipcRenderer.invoke('workspace:save', content)
 }
 
 export type ElectronApi = typeof api

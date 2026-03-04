@@ -3,6 +3,7 @@ import { useRequestStore } from '../../stores/requestStore'
 import { useEnvironmentStore } from '../../stores/environmentStore'
 import { useCollectionStore } from '../../stores/collectionStore'
 import { resolveVariables } from '../../../shared/variableResolver'
+import { runPostRequestScript } from '../../../shared/scriptRunner'
 import { RouteParamsEditor } from './RouteParamsEditor'
 import { QueryParamsEditor } from './QueryParamsEditor'
 import { KeyValueEditor } from './KeyValueEditor'
@@ -19,8 +20,12 @@ export function RequestBuilder() {
     setQueryParams,
     setHeaders,
     setBody,
+    setPostRequestScript,
     sendRequest
   } = useRequestStore()
+
+  const envStore = useEnvironmentStore.getState()
+  const collStore = useCollectionStore.getState()
 
   const envVars = useEnvironmentStore((s) => {
     const env = s.environments.find((e) => e.id === s.activeEnvironmentId)
@@ -38,7 +43,34 @@ export function RequestBuilder() {
     return []
   })()
 
-  const [activeTab, setActiveTab] = useState<'params' | 'query' | 'headers' | 'body'>('params')
+  const [activeTab, setActiveTab] = useState<'params' | 'query' | 'headers' | 'body' | 'scripts'>('params')
+  const [scriptError, setScriptError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const sel = useCollectionStore.getState().getSelectedCollection()
+    const req = useCollectionStore.getState().getSelectedRequest()
+    if (!sel || !req) return
+    const timeout = setTimeout(() => {
+      useCollectionStore.getState().updateRequest(sel.index, req.id, {
+        method: request.method,
+        url: request.url,
+        routeParams: request.routeParams,
+        queryParams: request.queryParams,
+        headers: request.headers,
+        body: request.body,
+        postRequestScript: request.postRequestScript
+      })
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [
+    request.method,
+    request.url,
+    request.routeParams,
+    request.queryParams,
+    request.headers,
+    request.body,
+    request.postRequestScript
+  ])
 
   const resolvedUrl = resolveVariables(request.url, envVars, collectionVars)
 
@@ -74,11 +106,37 @@ export function RequestBuilder() {
     return resolveVariables(request.body, envVars, collectionVars)
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const finalUrl = buildFinalUrl()
     const headers = buildHeaders()
     const body = resolveBody()
-    sendRequest(finalUrl, headers, body)
+    const script = useRequestStore.getState().request.postRequestScript
+    setScriptError(null)
+    await sendRequest(finalUrl, headers, body)
+    if (script?.trim()) {
+      try {
+        runPostRequestScript({
+          script,
+          request: {
+            method: request.method,
+            url: finalUrl,
+            headers
+          },
+          response: {
+            status: useRequestStore.getState().response.status,
+            statusText: useRequestStore.getState().response.statusText,
+            headers: useRequestStore.getState().response.headers,
+            body: useRequestStore.getState().response.body
+          },
+          envGet: (k) => envStore.getEnvironmentVariable(k),
+          envSet: (k, v) => envStore.setEnvironmentVariable(k, v),
+          collGet: (k) => collStore.getCollectionVariable(k),
+          collSet: (k, v) => collStore.setCollectionVariable(k, v)
+        })
+      } catch (err) {
+        setScriptError(err instanceof Error ? err.message : String(err))
+      }
+    }
   }
 
   const handleSendRef = useRef(handleSend)
@@ -129,7 +187,7 @@ export function RequestBuilder() {
       </div>
 
       <div className="flex gap-2 border-b border-slate-700 mb-2">
-        {(['params', 'query', 'headers', 'body'] as const).map((tab) => (
+        {(['params', 'query', 'headers', 'body', 'scripts'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -174,6 +232,34 @@ export function RequestBuilder() {
               placeholder='{"key": "value"}'
               className="w-full h-40 px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 font-mono placeholder-slate-500 resize-none"
             />
+          </div>
+        )}
+        {activeTab === 'scripts' && (
+          <div className="space-y-2">
+            <p className="text-slate-400 text-sm mb-2">
+              JavaScript that runs after the response. Use <code className="bg-slate-800 px-1 rounded">bod</code> to access request, response, and variables.
+            </p>
+            <textarea
+              value={request.postRequestScript ?? ''}
+              onChange={(e) => {
+                const v = e.target.value || null
+                setPostRequestScript(v)
+                const sel = useCollectionStore.getState().getSelectedCollection()
+                const req = useCollectionStore.getState().getSelectedRequest()
+                if (sel && req) {
+                  useCollectionStore.getState().updateRequest(sel.index, req.id, { postRequestScript: v })
+                }
+              }}
+              placeholder={`// Example: extract token and save to env
+const json = bod.response.json();
+if (json.token) {
+  bod.environment.set('token', json.token);
+}`}
+              className="w-full h-40 px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 font-mono placeholder-slate-500 resize-none"
+            />
+            {scriptError && (
+              <p className="text-red-400 text-sm">Script error: {scriptError}</p>
+            )}
           </div>
         )}
       </div>

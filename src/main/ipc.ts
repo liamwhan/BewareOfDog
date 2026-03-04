@@ -1,8 +1,7 @@
-import { ipcMain } from 'electron'
-import { readFile, writeFile } from 'fs/promises'
+import { ipcMain, app } from 'electron'
+import { readFile, writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join } from 'path'
-import { app } from 'electron'
+import { join, dirname } from 'path'
 
 export interface HttpRequestPayload {
   method: string
@@ -83,5 +82,28 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('app:getPath', async (_event, name: string): Promise<string> => {
     return app.getPath(name as 'userData' | 'documents' | 'home')
+  })
+
+  const WORKSPACE_FILENAME = 'workspace.json'
+  const getWorkspacePath = () => join(app.getPath('userData'), WORKSPACE_FILENAME)
+
+  ipcMain.handle('workspace:load', async (): Promise<string | null> => {
+    try {
+      const path = getWorkspacePath()
+      if (!existsSync(path)) return null
+      return await readFile(path, 'utf-8')
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('workspace:save', async (_event, content: string): Promise<void> => {
+    try {
+      const path = getWorkspacePath()
+      await mkdir(dirname(path), { recursive: true })
+      await writeFile(path, content, 'utf-8')
+    } catch (err) {
+      console.error('[BewareOfDog] Failed to save workspace:', err)
+    }
   })
 }

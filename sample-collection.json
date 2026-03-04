@@ -14,7 +14,8 @@
         { "key": "_limit", "value": "5", "enabled": true }
       ],
       "headers": [],
-      "body": null
+      "body": null,
+      "postRequestScript": null
     },
     {
       "id": "get-post",
@@ -26,7 +27,8 @@
       ],
       "queryParams": [],
       "headers": [],
-      "body": null
+      "body": null,
+      "postRequestScript": "// Extract data from response\nconst json = bod.response.json();\nif (json.id) {\n  bod.environment.set('lastPostId', String(json.id));\n}"
     }
   ]
 }

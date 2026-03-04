@@ -18,6 +18,7 @@ export function createRequest(overrides: Partial<Request> = {}): Request {
     queryParams: [],
     headers: [],
     body: null,
+    postRequestScript: null,
     ...overrides
   }
 }
@@ -41,7 +42,8 @@ export function parseCollectionJson(json: string): Collection {
         enabled: q.enabled !== false
       })),
       headers: r.headers ?? [],
-      body: r.body ?? null
+      body: r.body ?? null,
+      postRequestScript: r.postRequestScript ?? null
     }))
   }
 }

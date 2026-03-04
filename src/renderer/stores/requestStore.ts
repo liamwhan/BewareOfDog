@@ -12,6 +12,7 @@ export interface RequestState {
   queryParams: QueryParam[]
   headers: Variable[]
   body: string | null
+  postRequestScript: string | null
 }
 
 export interface ResponseState {
@@ -32,6 +33,7 @@ interface RequestStore {
   setQueryParams: (params: QueryParam[]) => void
   setHeaders: (headers: Variable[]) => void
   setBody: (body: string | null) => void
+  setPostRequestScript: (script: string | null) => void
   setResponse: (response: Partial<ResponseState>) => void
   loadRequest: (request: {
     method: string
@@ -40,6 +42,7 @@ interface RequestStore {
     queryParams: Array<{ key: string; value: string; enabled?: boolean }>
     headers: { key: string; value: string }[]
     body: string | null
+    postRequestScript?: string | null
   }) => void
   sendRequest: (resolvedUrl: string, resolvedHeaders: Record<string, string>, resolvedBody?: string) => Promise<void>
 }
@@ -50,7 +53,8 @@ const DEFAULT_REQUEST: RequestState = {
   routeParams: [],
   queryParams: [],
   headers: [],
-  body: null
+  body: null,
+  postRequestScript: null
 }
 
 const DEFAULT_RESPONSE: ResponseState = {
@@ -72,6 +76,8 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   setQueryParams: (queryParams) => set((s) => ({ request: { ...s.request, queryParams } })),
   setHeaders: (headers) => set((s) => ({ request: { ...s.request, headers } })),
   setBody: (body) => set((s) => ({ request: { ...s.request, body } })),
+  setPostRequestScript: (postRequestScript) =>
+    set((s) => ({ request: { ...s.request, postRequestScript } })),
 
   setResponse: (response) =>
     set((s) => ({
@@ -97,7 +103,8 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
           enabled: q.enabled !== false
         })),
         headers: request.headers ?? [],
-        body: request.body
+        body: request.body,
+        postRequestScript: request.postRequestScript ?? null
       }
     }))
   },

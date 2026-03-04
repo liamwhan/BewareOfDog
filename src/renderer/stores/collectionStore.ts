@@ -15,6 +15,9 @@ interface CollectionStore {
   removeRequest: (collectionIndex: number, requestId: string) => void
   selectRequest: (requestId: string | null) => void
   getSelectedRequest: () => Request | null
+  getSelectedCollection: () => { collection: Collection; index: number } | null
+  getCollectionVariable: (key: string) => string
+  setCollectionVariable: (key: string, value: string) => void
   loadRequestIntoBuilder: (request: Request) => void
   importCollection: (json: string) => void
   exportCollection: (index: number) => string
@@ -94,6 +97,36 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
       if (req) return req
     }
     return null
+  },
+
+  getSelectedCollection: () => {
+    const { collections, selectedRequestId } = get()
+    for (let i = 0; i < collections.length; i++) {
+      if (collections[i].requests.some((r) => r.id === selectedRequestId)) {
+        return { collection: collections[i], index: i }
+      }
+    }
+    return null
+  },
+
+  getCollectionVariable: (key) => {
+    const sel = get().getSelectedCollection()
+    const v = sel?.collection.variables.find((x) => x.key === key)
+    return v?.value ?? ''
+  },
+
+  setCollectionVariable: (key, value) => {
+    const sel = get().getSelectedCollection()
+    if (!sel) return
+    const vars = [...sel.collection.variables]
+    const idx = vars.findIndex((v) => v.key === key)
+    if (idx >= 0) vars[idx] = { key, value }
+    else vars.push({ key, value })
+    set((s) => {
+      const next = [...s.collections]
+      next[sel.index] = { ...next[sel.index], variables: vars }
+      return { collections: next }
+    })
   },
 
   loadRequestIntoBuilder: (request) => {

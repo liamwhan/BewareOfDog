@@ -12,6 +12,7 @@ export interface Request {
   queryParams: Array<Variable & { enabled?: boolean }>
   headers: Variable[]
   body: string | null
+  postRequestScript: string | null
 }
 
 export interface Collection {

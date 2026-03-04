@@ -18,5 +18,7 @@ interface Window {
     fileWrite: (path: string, content: string) => Promise<void>
     fileExists: (path: string) => Promise<boolean>
     appGetPath: (name: string) => Promise<string>
+    workspaceLoad: () => Promise<string | null>
+    workspaceSave: (content: string) => Promise<void>
   }
 }

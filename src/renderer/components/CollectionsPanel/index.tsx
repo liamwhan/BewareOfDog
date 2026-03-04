@@ -1,6 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useCollectionStore } from '../../stores/collectionStore'
-import { useRequestStore } from '../../stores/requestStore'
 import type { Collection, Request } from '../../../shared/types'
 
 export function CollectionsPanel() {
@@ -9,8 +8,10 @@ export function CollectionsPanel() {
     selectedRequestId,
     addCollection,
     removeCollection,
+    updateCollection,
     addRequest,
     removeRequest,
+    updateRequest,
     selectRequest,
     loadRequestIntoBuilder,
     importCollection,
@@ -18,6 +19,13 @@ export function CollectionsPanel() {
   } = useCollectionStore()
 
   const [expanded, setExpanded] = useState<Set<number>>(new Set([0]))
+  const [editing, setEditing] = useState<{
+    type: 'collection' | 'request'
+    collectionIndex: number
+    requestId?: string
+    value: string
+  } | null>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
   const [contextMenu, setContextMenu] = useState<{
     x: number
     y: number
@@ -25,6 +33,42 @@ export function CollectionsPanel() {
     collectionIndex: number
     request?: Request
   } | null>(null)
+
+  useEffect(() => {
+    if (editing) editInputRef.current?.focus()
+  }, [editing])
+
+  const handleRenameCollection = (i: number) => {
+    setContextMenu(null)
+    setEditing({
+      type: 'collection',
+      collectionIndex: i,
+      value: collections[i].name
+    })
+  }
+
+  const handleRenameRequest = (i: number, req: Request) => {
+    setContextMenu(null)
+    setEditing({
+      type: 'request',
+      collectionIndex: i,
+      requestId: req.id,
+      value: req.name
+    })
+  }
+
+  const commitRename = () => {
+    if (!editing) return
+    const trimmed = editing.value.trim()
+    if (trimmed) {
+      if (editing.type === 'collection') {
+        updateCollection(editing.collectionIndex, { name: trimmed })
+      } else if (editing.requestId) {
+        updateRequest(editing.collectionIndex, editing.requestId, { name: trimmed })
+      }
+    }
+    setEditing(null)
+  }
 
   const toggleExpand = (i: number) => {
     setExpanded((prev) => {
@@ -104,7 +148,30 @@ export function CollectionsPanel() {
               <span className="text-slate-400 w-4">
                 {expanded.has(i) ? '▼' : '▶'}
               </span>
-              <span className="flex-1 text-sm truncate">{coll.name}</span>
+              {editing?.type === 'collection' && editing.collectionIndex === i ? (
+                <input
+                  ref={editInputRef}
+                  value={editing.value}
+                  onChange={(e) => setEditing((p) => p && { ...p, value: e.target.value })}
+                  onBlur={commitRename}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitRename()
+                    if (e.key === 'Escape') setEditing(null)
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-1 px-1 py-0.5 text-sm bg-slate-700 border border-slate-500 rounded min-w-0"
+                />
+              ) : (
+                <span
+                  className="flex-1 text-sm truncate"
+                  onDoubleClick={(e) => {
+                    e.stopPropagation()
+                    handleRenameCollection(i)
+                  }}
+                >
+                  {coll.name}
+                </span>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -131,16 +198,39 @@ export function CollectionsPanel() {
                         request: req
                       })
                     }}
-                    className={`py-1.5 px-2 text-sm cursor-pointer truncate ${
+                    className={`py-1.5 px-2 text-sm cursor-pointer truncate flex items-center gap-2 ${
                       selectedRequestId === req.id
                         ? 'bg-slate-700 text-amber-400'
                         : 'hover:bg-slate-800 text-slate-300'
                     }`}
                   >
-                    <span className="font-mono text-xs text-slate-500 mr-2">
+                    <span className="font-mono text-xs text-slate-500 shrink-0">
                       {req.method}
                     </span>
-                    {req.name}
+                    {editing?.type === 'request' && editing.requestId === req.id ? (
+                      <input
+                        ref={editInputRef}
+                        value={editing.value}
+                        onChange={(e) => setEditing((p) => p && { ...p, value: e.target.value })}
+                        onBlur={commitRename}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitRename()
+                          if (e.key === 'Escape') setEditing(null)
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 min-w-0 px-1 py-0.5 text-sm bg-slate-700 border border-slate-500 rounded"
+                      />
+                    ) : (
+                      <span
+                        className="flex-1 truncate"
+                        onDoubleClick={(e) => {
+                          e.stopPropagation()
+                          handleRenameRequest(i, req)
+                        }}
+                      >
+                        {req.name}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -156,6 +246,12 @@ export function CollectionsPanel() {
         >
           {contextMenu.type === 'collection' && (
             <>
+              <button
+                onClick={() => handleRenameCollection(contextMenu.collectionIndex)}
+                className="w-full px-3 py-1.5 text-left text-sm hover:bg-slate-700"
+              >
+                Rename
+              </button>
               <button
                 onClick={() => {
                   handleExport(contextMenu.collectionIndex)
@@ -177,15 +273,23 @@ export function CollectionsPanel() {
             </>
           )}
           {contextMenu.type === 'request' && contextMenu.request && (
-            <button
-              onClick={() => {
-                removeRequest(contextMenu.collectionIndex, contextMenu.request!.id)
-                setContextMenu(null)
-              }}
-              className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-slate-700"
-            >
-              Delete Request
-            </button>
+            <>
+              <button
+                onClick={() => handleRenameRequest(contextMenu.collectionIndex, contextMenu.request!)}
+                className="w-full px-3 py-1.5 text-left text-sm hover:bg-slate-700"
+              >
+                Rename
+              </button>
+              <button
+                onClick={() => {
+                  removeRequest(contextMenu.collectionIndex, contextMenu.request!.id)
+                  setContextMenu(null)
+                }}
+                className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-slate-700"
+              >
+                Delete Request
+              </button>
+            </>
           )}
         </div>
       )}
