@@ -1,0 +1,8 @@
+{
+  "id": "dev-env",
+  "name": "Development",
+  "variables": [
+    { "key": "baseUrl", "value": "https://jsonplaceholder.typicode.com" },
+    { "key": "apiKey", "value": "dev-key-123" }
+  ]
+}

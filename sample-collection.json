@@ -1,0 +1,32 @@
+{
+  "name": "Sample API",
+  "variables": [
+    { "key": "baseUrl", "value": "https://jsonplaceholder.typicode.com" }
+  ],
+  "requests": [
+    {
+      "id": "get-posts",
+      "name": "Get Posts",
+      "method": "GET",
+      "url": "{{baseUrl}}/posts",
+      "routeParams": [],
+      "queryParams": [
+        { "key": "_limit", "value": "5", "enabled": true }
+      ],
+      "headers": [],
+      "body": null
+    },
+    {
+      "id": "get-post",
+      "name": "Get Post by ID",
+      "method": "GET",
+      "url": "{{baseUrl}}/posts/:id",
+      "routeParams": [
+        { "key": "id", "value": "1" }
+      ],
+      "queryParams": [],
+      "headers": [],
+      "body": null
+    }
+  ]
+}
