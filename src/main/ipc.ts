@@ -1,7 +1,9 @@
 import { ipcMain, app } from 'electron'
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join, dirname } from 'path'
+import { registerWorkspaceSyncIpc } from './workspace/syncIpc'
+import { routeWorkspaceLoad, routeWorkspaceSave } from './workspace/router'
+import type { WorkspaceLoadResult, WorkspaceSaveResult } from '../shared/syncTypes'
 
 export interface HttpRequestPayload {
   method: string
@@ -19,6 +21,8 @@ export interface HttpResponse {
 }
 
 export function registerIpcHandlers() {
+  registerWorkspaceSyncIpc()
+
   ipcMain.handle('http:request', async (_event, payload: HttpRequestPayload): Promise<HttpResponse> => {
     const start = Date.now()
     try {
@@ -84,26 +88,34 @@ export function registerIpcHandlers() {
     return app.getPath(name as 'userData' | 'documents' | 'home')
   })
 
-  const WORKSPACE_FILENAME = 'workspace.json'
-  const getWorkspacePath = () => join(app.getPath('userData'), WORKSPACE_FILENAME)
-
-  ipcMain.handle('workspace:load', async (): Promise<string | null> => {
+  ipcMain.handle('workspace:load', async (): Promise<WorkspaceLoadResult> => {
     try {
-      const path = getWorkspacePath()
-      if (!existsSync(path)) return null
-      return await readFile(path, 'utf-8')
-    } catch {
-      return null
-    }
-  })
-
-  ipcMain.handle('workspace:save', async (_event, content: string): Promise<void> => {
-    try {
-      const path = getWorkspacePath()
-      await mkdir(dirname(path), { recursive: true })
-      await writeFile(path, content, 'utf-8')
+      return await routeWorkspaceLoad(app)
     } catch (err) {
-      console.error('[BewareOfDog] Failed to save workspace:', err)
+      console.error('[BewareOfDog] workspace:load', err)
+      return {
+        json: null,
+        versionToken: null,
+        error: err instanceof Error ? err.message : String(err)
+      }
     }
   })
+
+  ipcMain.handle(
+    'workspace:save',
+    async (_event, payload: { content: string; ifVersionMatch?: string | null }): Promise<WorkspaceSaveResult> => {
+      try {
+        return await routeWorkspaceSave(app, payload.content, {
+          ifVersionMatch: payload.ifVersionMatch
+        })
+      } catch (err) {
+        console.error('[BewareOfDog] workspace:save', err)
+        return {
+          ok: false,
+          versionToken: null,
+          error: err instanceof Error ? err.message : String(err)
+        }
+      }
+    }
+  )
 }

@@ -74,9 +74,15 @@ export function VariablesPanel() {
             onClick={() => setShowEnvEditor(false)}
           />
           <div className="absolute right-0 top-full mt-1 p-3 border border-slate-600 rounded bg-slate-800 shadow-xl z-50 min-w-72">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-300">{activeEnv.name}</span>
-              <div className="flex gap-2">
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <input
+                type="text"
+                value={activeEnv.name}
+                onChange={(e) => updateEnvironment(activeEnv.id, { name: e.target.value })}
+                className="flex-1 px-2 py-1 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded min-w-0"
+                placeholder="Environment name"
+              />
+              <div className="flex gap-2 shrink-0">
                 <button
                   onClick={() => {
                     const json = exportEnvironment(activeEnv.id)

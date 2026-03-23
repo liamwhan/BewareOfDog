@@ -1,12 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { RequestBuilder } from './components/RequestBuilder'
 import { ResponseView } from './components/ResponseView'
 import { CollectionsPanel } from './components/CollectionsPanel'
 import { VariablesPanel } from './components/VariablesPanel'
 import { PersistenceManager } from './components/PersistenceManager'
+import { WorkspaceSyncModal } from './components/WorkspaceSyncModal'
 import { useThemeStore } from './stores/themeStore'
 
 export default function App() {
+  const [syncOpen, setSyncOpen] = useState(false)
   const theme = useThemeStore((s) => s.theme)
   const toggleTheme = useThemeStore((s) => s.toggleTheme)
 
@@ -17,12 +19,20 @@ export default function App() {
   return (
     <>
       <PersistenceManager />
+      <WorkspaceSyncModal open={syncOpen} onClose={() => setSyncOpen(false)} />
       <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col">
       <header className="border-b border-slate-300 dark:border-slate-700 px-4 py-2 flex items-center gap-4">
         <img src="/bod.png" alt="BewareOfDog" className="w-8 h-8 rounded-full shrink-0" />
         <h1 className="text-lg font-semibold">BewareOfDog</h1>
         <span className="text-slate-500 dark:text-slate-400 text-sm">REST API Debugger</span>
         <div className="flex-1" />
+        <button
+          type="button"
+          onClick={() => setSyncOpen(true)}
+          className="px-2 py-1 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
+        >
+          Workspace sync
+        </button>
         <VariablesPanel />
         <button
           onClick={toggleTheme}
