@@ -1,18 +1,46 @@
 # Beware Of Dog
-REST API Debugger - An Electron application for debugging REST APIs.
+
+**REST API debugging that stays yours.** A focused desktop client for building requests, inspecting responses, and sharing API workspaces—without renting team sync from a gatekeeper.
 
 ![Beware of Dog Logo](bod.png)
 
+## Why BewareOfDog?
+
+You already know how to call HTTP APIs. What you need is a **fast, local-first tool** that respects collections and environments—and when your team needs a shared source of truth, **you choose where it lives**. No BewareOfDog account. No surprise “team tier” invoices. Your credentials stay on your machine (encrypted with the OS where supported), and your data sits in **your** S3-compatible bucket or **your** Git remote.
+
+Built for people who liked the *simple* parts of the incumbent tools and resented paying enterprise rent for them.
+
 ## Features
 
-- **Request Builder**: Method selector, URL bar, route params, query params, headers, body
-- **Response View**: Status, timing, body (JSON/text), headers
-- **Collections**: JSON collection format, import/export, CRUD
-- **Variables**: Environment variables and collection variables with `{{var}}` interpolation
-- **Environments**: Named sets of variables (Dev, Staging, Prod)
-- **Keyboard shortcut**: Ctrl+Enter to send request
-- **Theme**: Dark/light mode toggle
-- **Post-request scripts**: JavaScript that runs after each response with a `bod` API (request, response, environment/collection variables)
+- **Request builder**: Method, URL, route/query params, headers, body
+- **Response view**: Status, timing, body (JSON or text), headers
+- **Collections**: JSON format, import/export, full CRUD
+- **Variables**: Environment and collection variables with `{{var}}` interpolation
+- **Environments**: Named variable sets (Dev, Staging, Prod, …)
+- **Workspace sync (BYO)**: Local file, **S3-compatible** storage, or **Git**—pick the backend in *Workspace sync* (see below)
+- **Keyboard shortcut**: Ctrl+Enter to send
+- **Themes**: Dark / light
+- **Post-request scripts**: Sandboxed JavaScript with a `bod` API for chaining tokens, assertions, and variable updates
+
+## Workspace sync—your cloud, your repo
+
+Stop exporting ZIPs to Slack. BewareOfDog persists your whole workspace (collections, environments, and UI selection state) as a single JSON document and lets you **back it with infrastructure you already pay for**:
+
+| Mode | Best for |
+|------|----------|
+| **Local file** | Solo work, air-gapped, or default until you wire a remote |
+| **S3-compatible** | AWS S3, Cloudflare R2, MinIO, etc.—one object (`…/workspace.json`), **conditional writes** so two people don’t silently overwrite each other |
+| **Git** | Teams that already live in GitHub/GitLab—history, review, and branch workflows you already trust |
+
+**What you get**
+
+- **No vendor-hosted database** and no BewareOfDog login—just connectors to *your* storage.
+- **Explicit conflict handling** when the remote changed (S3 ETags; Git pull/rebase before push).
+- **Secrets** stored with Electron **safe storage** where the OS supports it.
+
+Open **Workspace sync** from the header to add profiles, test connectivity, switch the active backend, and pull the latest workspace from remote.
+
+*Git mode expects [Git](https://git-scm.com/) on your `PATH`. HTTPS + a personal access token is the smoothest first setup.*
 
 ## Quick Start
 
@@ -72,8 +100,16 @@ if (json.token) {
 }
 ```
 
+## S3 tip (least privilege)
+
+For a dedicated prefix, narrow IAM to `s3:GetObject` and `s3:PutObject` on `arn:...:your-bucket/your-prefix/*` (plus `s3:ListBucket` with a prefix condition if your workflow needs listing). Adjust for your org’s standards.
+
 ## Build
 
 ```bash
 npm run build
 ```
+
+---
+
+*BewareOfDog: debug APIs, share workspaces, keep the keys.*
