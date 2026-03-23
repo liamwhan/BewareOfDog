@@ -4,6 +4,8 @@
 
 ![Beware of Dog Logo](public/bod.png)
 
+![BewareOfDog application screenshot](bod_screenshot.png)
+
 ## Why BewareOfDog?
 
 You already know how to call HTTP APIs. What you need is a **fast, local-first tool** that respects collections and environments—and when your team needs a shared source of truth, **you choose where it lives**. No BewareOfDog account. No surprise “team tier” invoices. Your credentials stay on your machine (encrypted with the OS where supported), and your data sits in **your** S3-compatible bucket or **your** Git remote.
