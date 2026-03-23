@@ -59,7 +59,7 @@ export function KeyValueEditor({
       <button
         type="button"
         onClick={add}
-        className="px-3 py-1.5 text-sm text-amber-400 hover:bg-slate-700 rounded border border-slate-600"
+        className="px-3 py-1.5 text-sm text-emerald-400 hover:bg-slate-700 rounded border border-slate-600"
       >
         {addLabel}
       </button>

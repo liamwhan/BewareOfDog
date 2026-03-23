@@ -163,7 +163,7 @@ export function RequestBuilder() {
         <select
           value={request.method}
           onChange={(e) => setMethod(e.target.value)}
-          className="px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm font-semibold text-amber-400"
+          className="px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm font-semibold text-emerald-400"
         >
           {METHODS.map((m) => (
             <option key={m} value={m}>
@@ -180,7 +180,7 @@ export function RequestBuilder() {
         />
         <button
           onClick={handleSend}
-          className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-900 font-semibold rounded text-sm"
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-semibold rounded text-sm"
         >
           Send
         </button>
@@ -193,7 +193,7 @@ export function RequestBuilder() {
             onClick={() => setActiveTab(tab)}
             className={`px-3 py-2 text-sm capitalize ${
               activeTab === tab
-                ? 'text-amber-400 border-b-2 border-amber-400'
+                ? 'text-emerald-400 border-b-2 border-emerald-400'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >

@@ -32,7 +32,7 @@ export function QueryParamsEditor({ params, onChange }: QueryParamsEditorProps) 
             type="checkbox"
             checked={item.enabled}
             onChange={(e) => update(i, 'enabled', e.target.checked)}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-amber-500"
+            className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-emerald-500"
           />
           <input
             type="text"
@@ -60,7 +60,7 @@ export function QueryParamsEditor({ params, onChange }: QueryParamsEditorProps) 
       <button
         type="button"
         onClick={add}
-        className="px-3 py-1.5 text-sm text-amber-400 hover:bg-slate-700 rounded border border-slate-600"
+        className="px-3 py-1.5 text-sm text-emerald-400 hover:bg-slate-700 rounded border border-slate-600"
       >
         Add
       </button>

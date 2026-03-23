@@ -2,6 +2,16 @@ import { useState, useRef, useEffect } from 'react'
 import { useCollectionStore } from '../../stores/collectionStore'
 import type { Collection, Request } from '../../../shared/types'
 
+type ImportBanner =
+  | null
+  | {
+      kind: 'success'
+      source: 'bod' | 'postman-v2.1'
+      collectionName: string
+      warnings: string[]
+    }
+  | { kind: 'error'; message: string }
+
 export function CollectionsPanel() {
   const {
     collections,
@@ -33,6 +43,7 @@ export function CollectionsPanel() {
     collectionIndex: number
     request?: Request
   } | null>(null)
+  const [importBanner, setImportBanner] = useState<ImportBanner>(null)
 
   useEffect(() => {
     if (editing) editInputRef.current?.focus()
@@ -93,9 +104,19 @@ export function CollectionsPanel() {
       if (!file) return
       try {
         const text = await file.text()
-        importCollection(text)
+        const { warnings, source, collectionName } = importCollection(text)
+        setImportBanner({
+          kind: 'success',
+          source,
+          collectionName,
+          warnings
+        })
       } catch (err) {
         console.error(err)
+        setImportBanner({
+          kind: 'error',
+          message: err instanceof Error ? err.message : String(err)
+        })
       }
     }
     input.click()
@@ -117,13 +138,13 @@ export function CollectionsPanel() {
       <div className="flex gap-2 mb-2">
         <button
           onClick={() => addCollection()}
-          className="px-2 py-1 text-sm text-amber-400 hover:bg-slate-700 rounded"
+          className="px-2 py-1 text-sm text-emerald-400 hover:bg-slate-700 rounded"
         >
           New Collection
         </button>
         <button
           onClick={handleImport}
-          className="px-2 py-1 text-sm text-amber-400 hover:bg-slate-700 rounded"
+          className="px-2 py-1 text-sm text-emerald-400 hover:bg-slate-700 rounded"
         >
           Import
         </button>
@@ -177,7 +198,7 @@ export function CollectionsPanel() {
                   e.stopPropagation()
                   addRequest(i)
                 }}
-                className="opacity-0 group-hover:opacity-100 px-1 text-amber-400 text-xs"
+                className="opacity-0 group-hover:opacity-100 px-1 text-emerald-400 text-xs"
               >
                 +
               </button>
@@ -200,7 +221,7 @@ export function CollectionsPanel() {
                     }}
                     className={`py-1.5 px-2 text-sm cursor-pointer truncate flex items-center gap-2 ${
                       selectedRequestId === req.id
-                        ? 'bg-slate-700 text-amber-400'
+                        ? 'bg-slate-700 text-emerald-400'
                         : 'hover:bg-slate-800 text-slate-300'
                     }`}
                   >
@@ -299,6 +320,40 @@ export function CollectionsPanel() {
           className="fixed inset-0 z-40"
           onClick={() => setContextMenu(null)}
         />
+      )}
+
+      {importBanner && (
+        <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] max-w-lg w-[90vw] text-sm rounded-lg border shadow-lg px-4 py-3 bg-emerald-50 dark:bg-emerald-950/90 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100">
+          {importBanner.kind === 'error' && <p className="mb-1">{importBanner.message}</p>}
+          {importBanner.kind === 'success' && (
+            <>
+              <p className="font-medium mb-1">
+                {importBanner.source === 'postman-v2.1'
+                  ? `Imported Postman collection “${importBanner.collectionName}”.`
+                  : `Imported collection “${importBanner.collectionName}”.`}
+              </p>
+              {importBanner.warnings.length > 0 && (
+                <div className="mt-2 space-y-1.5 text-emerald-900/90 dark:text-emerald-100/95">
+                  <p className="text-xs uppercase tracking-wide opacity-80">Not imported or partial</p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {importBanner.warnings.map((w, i) => (
+                      <li key={i}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+          <div className="flex justify-end mt-2">
+            <button
+              type="button"
+              className="px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700 hover:opacity-90"
+              onClick={() => setImportBanner(null)}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

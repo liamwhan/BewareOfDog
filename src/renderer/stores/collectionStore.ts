@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import type { Collection, Request } from '../../shared/types'
-import { createEmptyCollection, createRequest, parseCollectionJson, serializeCollection } from '../../shared/collection'
+import {
+  createEmptyCollection,
+  createRequest,
+  parseCollectionImport,
+  serializeCollection
+} from '../../shared/collection'
+import type { CollectionImportResult } from '../../shared/collection'
 import { useRequestStore } from './requestStore'
 
 interface CollectionStore {
@@ -19,7 +25,9 @@ interface CollectionStore {
   getCollectionVariable: (key: string) => string
   setCollectionVariable: (key: string, value: string) => void
   loadRequestIntoBuilder: (request: Request) => void
-  importCollection: (json: string) => void
+  importCollection: (json: string) => Pick<CollectionImportResult, 'warnings' | 'source'> & {
+    collectionName: string
+  }
   exportCollection: (index: number) => string
 }
 
@@ -134,8 +142,9 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
   },
 
   importCollection: (json) => {
-    const coll = parseCollectionJson(json)
-    set((s) => ({ collections: [...s.collections, coll] }))
+    const { collection, warnings, source } = parseCollectionImport(json)
+    set((s) => ({ collections: [...s.collections, collection] }))
+    return { warnings, source, collectionName: collection.name }
   },
 
   exportCollection: (index) => {

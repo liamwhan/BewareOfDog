@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url)
 const png2icons = require('png2icons')
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const inputPath = join(root, 'bod.png')
+const inputPath = join(root, 'public', 'bod.png')
 const buildDir = join(root, 'build')
 mkdirSync(buildDir, { recursive: true })
 

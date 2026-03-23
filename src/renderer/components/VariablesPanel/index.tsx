@@ -44,7 +44,7 @@ export function VariablesPanel() {
         </select>
         <button
           onClick={() => addEnvironment()}
-          className="px-2 py-1 text-xs text-amber-400 hover:bg-slate-700 rounded"
+          className="px-2 py-1 text-xs text-emerald-400 hover:bg-slate-700 rounded"
         >
           + New
         </button>
@@ -94,7 +94,7 @@ export function VariablesPanel() {
                     a.click()
                     URL.revokeObjectURL(url)
                   }}
-                  className="text-xs text-amber-400 hover:underline"
+                  className="text-xs text-emerald-400 hover:underline"
                 >
                   Export
                 </button>
@@ -113,7 +113,7 @@ export function VariablesPanel() {
                     }
                     input.click()
                   }}
-                  className="text-xs text-amber-400 hover:underline"
+                  className="text-xs text-emerald-400 hover:underline"
                 >
                   Import
                 </button>

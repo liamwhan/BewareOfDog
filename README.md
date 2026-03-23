@@ -2,7 +2,7 @@
 
 **REST API debugging that stays yours.** A focused desktop client for building requests, inspecting responses, and sharing API workspaces—without renting team sync from a gatekeeper.
 
-![Beware of Dog Logo](bod.png)
+![Beware of Dog Logo](public/bod.png)
 
 ## Why BewareOfDog?
 
@@ -14,7 +14,7 @@ Built for people who liked the *simple* parts of the incumbent tools and resente
 
 - **Request builder**: Method, URL, route/query params, headers, body
 - **Response view**: Status, timing, body (JSON or text), headers
-- **Collections**: JSON format, import/export, full CRUD
+- **Collections**: Full CRUD; import **Postman Collection v2.1** or native JSON, export as portable BewareOfDog JSON
 - **Variables**: Environment and collection variables with `{{var}}` interpolation
 - **Environments**: Named variable sets (Dev, Staging, Prod, …)
 - **Workspace sync (BYO)**: Local file, **S3-compatible** storage, or **Git**—pick the backend in *Workspace sync* (see below)
@@ -85,6 +85,16 @@ macOS builds are not notarized; you may need to use **Open** from the context me
 }
 ```
 
+## Import formats
+
+**You can bring your existing Postman work.** BewareOfDog imports **Postman Collection v2.1**—export your collection from Postman, use **Import** in the collections panel, and you’re back to a full request list without rebuilding endpoints from scratch. Names, variables, methods, URLs, query and path params, headers, and common body types (raw, urlencoded, typical form and GraphQL shapes) come across; Bearer, Basic, and API-key-in-header auth map to headers so you stay productive on day one.
+
+**Your collections, your format on disk.** For save, backup, and workspace sync, BewareOfDog uses the open **BewareOfDog JSON** shape shown under [Collection Format](#collection-format)—readable, diff-friendly, and a natural fit for Git and S3-backed workspaces. That’s the format **Export** uses: portable, yours, and aligned with how the app stores data—not a closed vendor bundle.
+
+**After a Postman import**, the app shows a short, dismissible summary if anything needed a human pass (for example Postman-only scripts, saved response examples, or advanced auth). Most API surfaces import cleanly; the summary is there so nothing surprises you later.
+
+**Edge cases you might adjust by hand** (also summarized after import when they apply): Postman pre-request and test scripts (`pm.*`) aren’t carried over—BewareOfDog uses its own sandboxed `bod` post-request scripts instead. Saved example responses, protocol/proxy/certificate extras, OAuth2 and similar auth helpers, multipart file uploads, oddball header encodings, and API keys meant for the query string may need a quick tweak in the builder.
+
 ## Environment Format
 
 ```json
@@ -128,7 +138,7 @@ npm run build
 npm run dist
 ```
 
-This runs `electron-vite build`, regenerates icons from `bod.png` (`npm run icons`), and produces installers under `release/` (Windows NSIS, macOS DMG, Linux AppImage). Use `npm run dist:dir` for an unpacked directory only (no installer).
+This runs `electron-vite build`, regenerates icons from `public/bod.png` (`npm run icons`), and produces installers under `release/` (Windows NSIS, macOS DMG, Linux AppImage). Use `npm run dist:dir` for an unpacked directory only (no installer).
 
 ### Publishing a release (maintainers)
 

@@ -118,7 +118,7 @@ export function PersistenceManager() {
   if (!loadError && !saveConflict && !lastSaveError) return null
 
   return (
-    <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[90vw] text-sm rounded-lg border shadow-lg px-4 py-2 bg-amber-50 dark:bg-amber-950/90 border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-100">
+    <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[90vw] text-sm rounded-lg border shadow-lg px-4 py-2 bg-emerald-50 dark:bg-emerald-950/90 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100">
       {loadError && <p className="mb-1">Workspace load: {loadError}</p>}
       {saveConflict && (
         <p className="mb-1">
@@ -130,7 +130,7 @@ export function PersistenceManager() {
       <div className="flex gap-2 mt-2 justify-end">
         <button
           type="button"
-          className="px-2 py-1 rounded bg-amber-200 dark:bg-amber-800 hover:opacity-90"
+          className="px-2 py-1 rounded bg-emerald-200 dark:bg-emerald-800 hover:opacity-90"
           onClick={() => {
             setLoadError(null)
             setLastSaveError(null)
@@ -141,7 +141,7 @@ export function PersistenceManager() {
         </button>
         <button
           type="button"
-          className="px-2 py-1 rounded border border-amber-300 dark:border-amber-700"
+          className="px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700"
           onClick={() => {
             setLoadError(null)
             setSaveConflict(false)

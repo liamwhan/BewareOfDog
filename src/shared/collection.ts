@@ -1,4 +1,8 @@
 import type { Collection, Request } from './types'
+import { importPostmanCollectionV21WithWarnings, isPostmanCollectionV21 } from './postmanImport'
+import type { CollectionImportResult } from './postmanImport'
+
+export type { CollectionImportResult } from './postmanImport'
 
 export function createEmptyCollection(name: string): Collection {
   return {
@@ -23,15 +27,22 @@ export function createRequest(overrides: Partial<Request> = {}): Request {
   }
 }
 
-export function parseCollectionJson(json: string): Collection {
-  const data = JSON.parse(json)
-  if (!data.name || !Array.isArray(data.requests)) {
+function parseBodCollection(data: unknown): Collection {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Invalid collection format')
+  }
+  const d = data as {
+    name?: unknown
+    variables?: unknown
+    requests?: unknown
+  }
+  if (typeof d.name !== 'string' || !Array.isArray(d.requests)) {
     throw new Error('Invalid collection format')
   }
   return {
-    name: data.name,
-    variables: Array.isArray(data.variables) ? data.variables : [],
-    requests: data.requests.map((r: Partial<Request>) => ({
+    name: d.name,
+    variables: Array.isArray(d.variables) ? d.variables : [],
+    requests: d.requests.map((r: Partial<Request>) => ({
       id: r.id ?? crypto.randomUUID(),
       name: r.name ?? 'Untitled',
       method: r.method ?? 'GET',
@@ -45,6 +56,36 @@ export function parseCollectionJson(json: string): Collection {
       body: r.body ?? null,
       postRequestScript: r.postRequestScript ?? null
     }))
+  }
+}
+
+export function parseCollectionJson(json: string): Collection {
+  let data: unknown
+  try {
+    data = JSON.parse(json)
+  } catch {
+    throw new Error('Invalid collection format')
+  }
+  return parseBodCollection(data)
+}
+
+export function parseCollectionImport(json: string): CollectionImportResult {
+  let data: unknown
+  try {
+    data = JSON.parse(json)
+  } catch {
+    throw new Error('Invalid JSON')
+  }
+  if (isPostmanCollectionV21(data)) {
+    const { collection, warnings } = importPostmanCollectionV21WithWarnings(data)
+    return { collection, warnings, source: 'postman-v2.1' }
+  }
+  try {
+    return { collection: parseBodCollection(data), warnings: [], source: 'bod' }
+  } catch {
+    throw new Error(
+      'Unsupported collection file. Import a BewareOfDog collection JSON or a Postman Collection v2.1 export.'
+    )
   }
 }
 

@@ -6,7 +6,7 @@ let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
   const preloadPath = join(__dirname, '../preload/index.cjs')
-  const iconPath = join(__dirname, '../../bod.png')
+  const iconPath = join(__dirname, '../../public/bod.png')
   const icon = nativeImage.createFromPath(iconPath)
 
   mainWindow = new BrowserWindow({

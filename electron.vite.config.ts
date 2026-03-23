@@ -32,6 +32,8 @@ export default defineConfig({
   },
   renderer: {
     root: 'src/renderer',
+    // Use repo-root `public/` so `public/bod.png` is the single static-asset source (not `src/renderer/public/`).
+    publicDir: resolve(__dirname, 'public'),
     build: {
       rollupOptions: {
         input: resolve(__dirname, 'src/renderer/index.html')

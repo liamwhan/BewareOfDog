@@ -16,7 +16,7 @@ export function ResponseView() {
       ? 'text-green-400'
       : response.status >= 400
         ? 'text-red-400'
-        : 'text-amber-400'
+        : 'text-emerald-400'
 
   return (
     <div className="flex flex-col h-full">
@@ -41,7 +41,7 @@ export function ResponseView() {
           onClick={() => setActiveTab('body')}
           className={`px-3 py-2 text-sm ${
             activeTab === 'body'
-              ? 'text-amber-400 border-b-2 border-amber-400'
+              ? 'text-emerald-400 border-b-2 border-emerald-400'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -51,7 +51,7 @@ export function ResponseView() {
           onClick={() => setActiveTab('headers')}
           className={`px-3 py-2 text-sm ${
             activeTab === 'headers'
-              ? 'text-amber-400 border-b-2 border-amber-400'
+              ? 'text-emerald-400 border-b-2 border-emerald-400'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
