@@ -49,6 +49,18 @@ npm install
 npm run dev
 ```
 
+## Releases (installers)
+
+Pre-built installers are published on the repository’s **Releases** tab for each tagged version. Choose the asset for your platform:
+
+| Platform | File |
+|----------|------|
+| Windows | NSIS installer (`.exe`) |
+| macOS | Disk image (`.dmg`) |
+| Linux | AppImage (`.AppImage`; `chmod +x` if your browser strips execute permission) |
+
+macOS builds are not notarized; you may need to use **Open** from the context menu the first time you launch the app.
+
 ## Collection Format
 
 ```json
@@ -109,6 +121,21 @@ For a dedicated prefix, narrow IAM to `s3:GetObject` and `s3:PutObject` on `arn:
 ```bash
 npm run build
 ```
+
+### Desktop packages (local)
+
+```bash
+npm run dist
+```
+
+This runs `electron-vite build`, regenerates icons from `bod.png` (`npm run icons`), and produces installers under `release/` (Windows NSIS, macOS DMG, Linux AppImage). Use `npm run dist:dir` for an unpacked directory only (no installer).
+
+### Publishing a release (maintainers)
+
+1. Set `version` in `package.json` to the release (for example `0.2.0`) and commit.
+2. Tag and push: `git tag -a v0.2.0 -m "v0.2.0"` then `git push origin v0.2.0`.
+
+The tag **must** be `v` plus the exact `package.json` version (e.g. tag `v0.2.0` ↔ version `0.2.0`). Pushing the tag runs GitHub Actions, which builds Windows, macOS, and Linux artifacts and attaches them to the GitHub Release for that tag.
 
 ---
 
