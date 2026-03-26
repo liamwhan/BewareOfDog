@@ -60,21 +60,66 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
       - uses: actions/download-artifact@v4
         with:
           path: release-assets
           pattern: dist-*
           merge-multiple: true
 
+      - name: Build release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT="${GITHUB_REF_NAME}"
+          {
+            echo "## Changes"
+            echo ""
+            mapfile -t TAGS < <(git tag -l 'v*' --sort=-version:refname)
+            PREV=""
+            for i in "${!TAGS[@]}"; do
+              if [ "${TAGS[$i]}" = "$CURRENT" ]; then
+                if [ $((i + 1)) -lt ${#TAGS[@]} ]; then
+                  PREV="${TAGS[$((i + 1))]}"
+                fi
+                break
+              fi
+            done
+
+            if [ -n "$PREV" ]; then
+              LOG=$(git log "${PREV}..${CURRENT}" --pretty=format:'- %s (%h)' || true)
+              if [ -n "$LOG" ]; then
+                echo "$LOG"
+              else
+                echo "- _No commits since ${PREV}._"
+              fi
+            else
+              LOG=$(git log --pretty=format:'- %s (%h)' --max-count=500 || true)
+              if [ -n "$LOG" ]; then
+                echo "$LOG"
+              else
+                echo "- _Initial release._"
+              fi
+            fi
+
+            echo ""
+            echo "---"
+            echo ""
+            echo "Installers for **${CURRENT}**."
+            echo ""
+            echo '- **Windows:** run the NSIS `.exe` installer.'
+            echo '- **macOS:** open the `.dmg` and drag the app to Applications. Unsigned builds may require right-click → Open the first time.'
+            echo '- **Linux:** `chmod +x` the `.AppImage` if needed, then run it.'
+          } > release-body.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          body: |
-            Installers for **${{ github.ref_name }}**.
-
-            - **Windows:** run the NSIS `.exe` installer.
-            - **macOS:** open the `.dmg` and drag the app to Applications. Unsigned builds may require right-click → Open the first time.
-            - **Linux:** `chmod +x` the `.AppImage` if needed, then run it.
+          body_path: release-body.md
           files: release-assets/*

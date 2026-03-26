@@ -1,16 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { RequestBuilder } from './components/RequestBuilder'
 import { ResponseView } from './components/ResponseView'
 import { CollectionsPanel } from './components/CollectionsPanel'
+import { CollectionSettingsPanel } from './components/CollectionSettingsPanel'
+import { VerticalResizeHandle } from './components/VerticalResizeHandle'
 import { VariablesPanel } from './components/VariablesPanel'
 import { PersistenceManager } from './components/PersistenceManager'
 import { WorkspaceSyncModal } from './components/WorkspaceSyncModal'
 import { useThemeStore } from './stores/themeStore'
+import { useCollectionStore } from './stores/collectionStore'
+
+const LEFT_MIN = 160
+const LEFT_MAX = 560
+const LEFT_DEFAULT = 256
+const RIGHT_MIN = 220
+const RIGHT_MAX = 560
+const RIGHT_DEFAULT = 320
 
 export default function App() {
   const [syncOpen, setSyncOpen] = useState(false)
+  const [leftWidth, setLeftWidth] = useState(LEFT_DEFAULT)
+  const [rightWidth, setRightWidth] = useState(RIGHT_DEFAULT)
   const theme = useThemeStore((s) => s.theme)
   const toggleTheme = useThemeStore((s) => s.toggleTheme)
+  const rightPanelOpen = useCollectionStore((s) => s.selectedCollectionSettingsIndex !== null)
+
+  const onResizeLeft = useCallback((deltaPx: number) => {
+    setLeftWidth((w) => Math.min(LEFT_MAX, Math.max(LEFT_MIN, w + deltaPx)))
+  }, [])
+
+  const onResizeRight = useCallback((deltaPx: number) => {
+    setRightWidth((w) => Math.min(RIGHT_MAX, Math.max(RIGHT_MIN, w - deltaPx)))
+  }, [])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -42,11 +63,15 @@ export default function App() {
           {theme === 'dark' ? '☀' : '☽'}
         </button>
       </header>
-      <main className="flex-1 flex overflow-hidden">
-        <aside className="w-64 border-r border-slate-300 dark:border-slate-700 p-2 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-900/50">
+      <main className="flex-1 flex overflow-hidden min-h-0">
+        <aside
+          className="border-r border-slate-300 dark:border-slate-700 p-2 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-900/50 shrink-0"
+          style={{ width: leftWidth }}
+        >
           <CollectionsPanel />
         </aside>
-        <section className="flex-1 flex flex-col overflow-hidden">
+        <VerticalResizeHandle onResize={onResizeLeft} label="Resize collections sidebar" />
+        <section className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="p-4 border-b border-slate-300 dark:border-slate-700 flex-1 min-h-0 flex flex-col">
             <RequestBuilder />
           </div>
@@ -54,6 +79,12 @@ export default function App() {
             <ResponseView />
           </div>
         </section>
+        {rightPanelOpen && (
+          <>
+            <VerticalResizeHandle onResize={onResizeRight} label="Resize collection settings panel" />
+            <CollectionSettingsPanel widthPx={rightWidth} />
+          </>
+        )}
       </main>
     </div>
     </>

@@ -1,12 +1,9 @@
 import { useState } from 'react'
 import { useEnvironmentStore } from '../../stores/environmentStore'
-import { useCollectionStore } from '../../stores/collectionStore'
 import { KeyValueEditor } from '../RequestBuilder/KeyValueEditor'
-import type { Variable } from '../../../shared/types'
 
 export function VariablesPanel() {
   const [showEnvEditor, setShowEnvEditor] = useState(false)
-  const [showCollEditor, setShowCollEditor] = useState(false)
 
   const {
     environments,
@@ -19,12 +16,7 @@ export function VariablesPanel() {
     exportEnvironment
   } = useEnvironmentStore()
 
-  const { collections, selectedRequestId, updateCollection } = useCollectionStore()
-
   const activeEnv = environments.find((e) => e.id === activeEnvironmentId)
-  const selectedCollection = collections.find((c) =>
-    c.requests.some((r) => r.id === selectedRequestId)
-  )
 
   return (
     <div className="flex items-center gap-4 relative">
@@ -57,15 +49,6 @@ export function VariablesPanel() {
           </button>
         )}
       </div>
-
-      {selectedCollection && (
-        <button
-          onClick={() => setShowCollEditor(!showCollEditor)}
-          className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200"
-        >
-          Collection vars
-        </button>
-      )}
 
       {showEnvEditor && activeEnv && (
         <>
@@ -131,30 +114,6 @@ export function VariablesPanel() {
             <KeyValueEditor
               items={activeEnv.variables}
               onChange={(v) => updateEnvironment(activeEnv.id, { variables: v })}
-              keyPlaceholder="Variable name"
-              valuePlaceholder="Value"
-              addLabel="Add Variable"
-            />
-          </div>
-        </>
-      )}
-
-      {showCollEditor && selectedCollection && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setShowCollEditor(false)}
-          />
-          <div className="absolute right-0 top-full mt-1 p-3 border border-slate-600 rounded bg-slate-800 shadow-xl z-50 min-w-72">
-            <span className="text-sm font-medium text-slate-300 block mb-2">
-              {selectedCollection.name} variables
-            </span>
-            <KeyValueEditor
-              items={selectedCollection.variables}
-              onChange={(v) => {
-                const i = collections.findIndex((c) => c.name === selectedCollection.name)
-                if (i >= 0) updateCollection(i, { variables: v })
-              }}
               keyPlaceholder="Variable name"
               valuePlaceholder="Value"
               addLabel="Add Variable"

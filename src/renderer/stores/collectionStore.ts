@@ -12,6 +12,8 @@ import { useRequestStore } from './requestStore'
 interface CollectionStore {
   collections: Collection[]
   selectedRequestId: string | null
+  /** When set, the right panel shows settings for this collection index. */
+  selectedCollectionSettingsIndex: number | null
   setCollections: (collections: Collection[]) => void
   addCollection: (name?: string) => void
   removeCollection: (index: number) => void
@@ -20,6 +22,7 @@ interface CollectionStore {
   updateRequest: (collectionIndex: number, requestId: string, updates: Partial<Request>) => void
   removeRequest: (collectionIndex: number, requestId: string) => void
   selectRequest: (requestId: string | null) => void
+  selectCollectionSettings: (collectionIndex: number | null) => void
   getSelectedRequest: () => Request | null
   getSelectedCollection: () => { collection: Collection; index: number } | null
   getCollectionVariable: (key: string) => string
@@ -34,6 +37,7 @@ interface CollectionStore {
 export const useCollectionStore = create<CollectionStore>((set, get) => ({
   collections: [],
   selectedRequestId: null,
+  selectedCollectionSettingsIndex: null,
 
   setCollections: (collections) => set({ collections }),
 
@@ -48,7 +52,13 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
       selectedRequestId:
         s.collections[index]?.requests.some((r) => r.id === s.selectedRequestId)
           ? null
-          : s.selectedRequestId
+          : s.selectedRequestId,
+      selectedCollectionSettingsIndex:
+        s.selectedCollectionSettingsIndex === index
+          ? null
+          : s.selectedCollectionSettingsIndex !== null && s.selectedCollectionSettingsIndex > index
+            ? s.selectedCollectionSettingsIndex - 1
+            : s.selectedCollectionSettingsIndex
     }))
   },
 
@@ -96,7 +106,14 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
     }))
   },
 
-  selectRequest: (requestId) => set({ selectedRequestId: requestId }),
+  selectRequest: (requestId) =>
+    set({ selectedRequestId: requestId, selectedCollectionSettingsIndex: null }),
+
+  selectCollectionSettings: (collectionIndex) =>
+    set({
+      selectedCollectionSettingsIndex: collectionIndex,
+      selectedRequestId: null
+    }),
 
   getSelectedRequest: () => {
     const { collections, selectedRequestId } = get()

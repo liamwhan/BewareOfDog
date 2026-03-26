@@ -16,6 +16,7 @@ export function CollectionsPanel() {
   const {
     collections,
     selectedRequestId,
+    selectedCollectionSettingsIndex,
     addCollection,
     removeCollection,
     updateCollection,
@@ -23,6 +24,7 @@ export function CollectionsPanel() {
     removeRequest,
     updateRequest,
     selectRequest,
+    selectCollectionSettings,
     loadRequestIntoBuilder,
     importCollection,
     exportCollection
@@ -154,8 +156,9 @@ export function CollectionsPanel() {
         {collections.map((coll, i) => (
           <div key={i} className="rounded overflow-hidden">
             <div
-              className="flex items-center gap-1 py-1.5 px-2 hover:bg-slate-800 cursor-pointer group"
-              onClick={() => toggleExpand(i)}
+              className={`flex items-center gap-1 py-1.5 px-2 hover:bg-slate-800 group ${
+                selectedCollectionSettingsIndex === i ? 'bg-slate-800/80 ring-1 ring-emerald-700/50' : ''
+              }`}
               onContextMenu={(e) => {
                 e.preventDefault()
                 setContextMenu({
@@ -166,9 +169,17 @@ export function CollectionsPanel() {
                 })
               }}
             >
-              <span className="text-slate-400 w-4">
+              <button
+                type="button"
+                className="text-slate-400 w-4 shrink-0 hover:text-slate-200"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleExpand(i)
+                }}
+                aria-label={expanded.has(i) ? 'Collapse collection' : 'Expand collection'}
+              >
                 {expanded.has(i) ? '▼' : '▶'}
-              </span>
+              </button>
               {editing?.type === 'collection' && editing.collectionIndex === i ? (
                 <input
                   ref={editInputRef}
@@ -184,7 +195,16 @@ export function CollectionsPanel() {
                 />
               ) : (
                 <span
-                  className="flex-1 text-sm truncate"
+                  className="flex-1 text-sm truncate cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    selectCollectionSettings(i)
+                    setExpanded((prev) => {
+                      const next = new Set(prev)
+                      next.add(i)
+                      return next
+                    })
+                  }}
                   onDoubleClick={(e) => {
                     e.stopPropagation()
                     handleRenameCollection(i)

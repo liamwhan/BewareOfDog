@@ -1,4 +1,5 @@
 import type { Collection, Request, Variable } from './types'
+import { defaultCollectionAuth, defaultRequestAuth } from './auth'
 
 export type CollectionImportSource = 'bod' | 'postman-v2.1'
 
@@ -439,7 +440,8 @@ function postmanItemToRequest(
     queryParams,
     headers,
     body: bodyRes.body,
-    postRequestScript: null
+    postRequestScript: null,
+    auth: defaultRequestAuth()
   }
 }
 
@@ -615,6 +617,7 @@ export function importPostmanCollectionV21WithWarnings(data: unknown): { collect
   const collection: Collection = {
     name: info.name,
     variables,
+    auth: defaultCollectionAuth(),
     requests
   }
 

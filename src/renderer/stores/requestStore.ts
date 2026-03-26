@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { Variable } from '../../shared/types'
+import type { RequestAuth, Variable } from '../../shared/types'
+import { defaultRequestAuth } from '../../shared/auth'
 
 export interface QueryParam extends Variable {
   enabled: boolean
@@ -13,6 +14,7 @@ export interface RequestState {
   headers: Variable[]
   body: string | null
   postRequestScript: string | null
+  auth: RequestAuth
 }
 
 export interface ResponseState {
@@ -34,6 +36,7 @@ interface RequestStore {
   setHeaders: (headers: Variable[]) => void
   setBody: (body: string | null) => void
   setPostRequestScript: (script: string | null) => void
+  setAuth: (auth: RequestAuth) => void
   setResponse: (response: Partial<ResponseState>) => void
   loadRequest: (request: {
     method: string
@@ -43,6 +46,7 @@ interface RequestStore {
     headers: { key: string; value: string }[]
     body: string | null
     postRequestScript?: string | null
+    auth?: RequestAuth
   }) => void
   sendRequest: (resolvedUrl: string, resolvedHeaders: Record<string, string>, resolvedBody?: string) => Promise<void>
 }
@@ -54,7 +58,8 @@ const DEFAULT_REQUEST: RequestState = {
   queryParams: [],
   headers: [],
   body: null,
-  postRequestScript: null
+  postRequestScript: null,
+  auth: defaultRequestAuth()
 }
 
 const DEFAULT_RESPONSE: ResponseState = {
@@ -79,6 +84,8 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   setPostRequestScript: (postRequestScript) =>
     set((s) => ({ request: { ...s.request, postRequestScript } })),
 
+  setAuth: (auth) => set((s) => ({ request: { ...s.request, auth } })),
+
   setResponse: (response) =>
     set((s) => ({
       response: { ...s.response, ...response }
@@ -91,6 +98,8 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
     queryParams: Array<{ key: string; value: string; enabled?: boolean }>
     headers: { key: string; value: string }[]
     body: string | null
+    postRequestScript?: string | null
+    auth?: RequestAuth
   }) => {
     set((s) => ({
       request: {
@@ -104,7 +113,8 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
         })),
         headers: request.headers ?? [],
         body: request.body,
-        postRequestScript: request.postRequestScript ?? null
+        postRequestScript: request.postRequestScript ?? null,
+        auth: request.auth ?? defaultRequestAuth()
       }
     }))
   },

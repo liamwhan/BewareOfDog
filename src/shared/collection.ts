@@ -1,4 +1,5 @@
 import type { Collection, Request } from './types'
+import { defaultCollectionAuth, defaultRequestAuth, normalizeCollectionAuth, normalizeRequestAuth } from './auth'
 import { importPostmanCollectionV21WithWarnings, isPostmanCollectionV21 } from './postmanImport'
 import type { CollectionImportResult } from './postmanImport'
 
@@ -8,6 +9,7 @@ export function createEmptyCollection(name: string): Collection {
   return {
     name,
     variables: [],
+    auth: defaultCollectionAuth(),
     requests: []
   }
 }
@@ -23,6 +25,7 @@ export function createRequest(overrides: Partial<Request> = {}): Request {
     headers: [],
     body: null,
     postRequestScript: null,
+    auth: defaultRequestAuth(),
     ...overrides
   }
 }
@@ -34,6 +37,7 @@ function parseBodCollection(data: unknown): Collection {
   const d = data as {
     name?: unknown
     variables?: unknown
+    auth?: unknown
     requests?: unknown
   }
   if (typeof d.name !== 'string' || !Array.isArray(d.requests)) {
@@ -42,6 +46,7 @@ function parseBodCollection(data: unknown): Collection {
   return {
     name: d.name,
     variables: Array.isArray(d.variables) ? d.variables : [],
+    auth: normalizeCollectionAuth(d.auth),
     requests: d.requests.map((r: Partial<Request>) => ({
       id: r.id ?? crypto.randomUUID(),
       name: r.name ?? 'Untitled',
@@ -54,7 +59,8 @@ function parseBodCollection(data: unknown): Collection {
       })),
       headers: r.headers ?? [],
       body: r.body ?? null,
-      postRequestScript: r.postRequestScript ?? null
+      postRequestScript: r.postRequestScript ?? null,
+      auth: normalizeRequestAuth((r as Partial<Request>).auth)
     }))
   }
 }

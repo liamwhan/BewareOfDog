@@ -2,7 +2,7 @@ import type { Variable } from './types'
 
 /**
  * Resolve {{variable}} placeholders in a string.
- * Resolution order: collectionVars (highest) -> envVars -> fallback to literal
+ * Merge order: environment variables first, then collection variables (collection wins on duplicate keys).
  */
 export function resolveVariables(
   str: string,

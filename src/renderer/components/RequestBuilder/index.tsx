@@ -3,10 +3,17 @@ import { useRequestStore } from '../../stores/requestStore'
 import { useEnvironmentStore } from '../../stores/environmentStore'
 import { useCollectionStore } from '../../stores/collectionStore'
 import { resolveVariables } from '../../../shared/variableResolver'
+import {
+  authorizationValueFromResolvedConfig,
+  defaultCollectionAuth,
+  effectiveRequestAuth,
+  resolveAuthConfig
+} from '../../../shared/auth'
 import { runPostRequestScript } from '../../../shared/scriptRunner'
 import { RouteParamsEditor } from './RouteParamsEditor'
 import { QueryParamsEditor } from './QueryParamsEditor'
 import { KeyValueEditor } from './KeyValueEditor'
+import { AuthEditor } from '../AuthEditor'
 import type { Variable } from '../../../shared/types'
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
@@ -21,6 +28,7 @@ export function RequestBuilder() {
     setHeaders,
     setBody,
     setPostRequestScript,
+    setAuth,
     sendRequest
   } = useRequestStore()
 
@@ -43,7 +51,9 @@ export function RequestBuilder() {
     return []
   })()
 
-  const [activeTab, setActiveTab] = useState<'params' | 'query' | 'headers' | 'body' | 'scripts'>('params')
+  const [activeTab, setActiveTab] = useState<
+    'params' | 'query' | 'headers' | 'auth' | 'body' | 'scripts'
+  >('params')
   const [scriptError, setScriptError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -58,7 +68,8 @@ export function RequestBuilder() {
         queryParams: request.queryParams,
         headers: request.headers,
         body: request.body,
-        postRequestScript: request.postRequestScript
+        postRequestScript: request.postRequestScript,
+        auth: request.auth
       })
     }, 300)
     return () => clearTimeout(timeout)
@@ -69,7 +80,8 @@ export function RequestBuilder() {
     request.queryParams,
     request.headers,
     request.body,
-    request.postRequestScript
+    request.postRequestScript,
+    request.auth
   ])
 
   const resolvedUrl = resolveVariables(request.url, envVars, collectionVars)
@@ -92,7 +104,16 @@ export function RequestBuilder() {
   }
 
   const buildHeaders = (): Record<string, string> => {
+    const coll = useCollectionStore.getState().getSelectedCollection()
+    const collectionAuth = coll?.collection.auth ?? defaultCollectionAuth()
+    const effective = effectiveRequestAuth(collectionAuth, request.auth)
+    const resolvedAuth = resolveAuthConfig(effective, envVars, collectionVars)
+    const authValue = authorizationValueFromResolvedConfig(resolvedAuth)
+
     const headers: Record<string, string> = {}
+    if (authValue) {
+      headers.Authorization = authValue
+    }
     for (const h of request.headers) {
       if (h.key) {
         headers[h.key] = resolveVariables(h.value, envVars, collectionVars)
@@ -187,7 +208,7 @@ export function RequestBuilder() {
       </div>
 
       <div className="flex gap-2 border-b border-slate-700 mb-2">
-        {(['params', 'query', 'headers', 'body', 'scripts'] as const).map((tab) => (
+        {(['params', 'query', 'headers', 'auth', 'body', 'scripts'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -197,7 +218,7 @@ export function RequestBuilder() {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {tab}
+            {tab === 'auth' ? 'Authorization' : tab}
           </button>
         ))}
       </div>
@@ -223,6 +244,9 @@ export function RequestBuilder() {
             keyPlaceholder="Header name"
             valuePlaceholder="Value"
           />
+        )}
+        {activeTab === 'auth' && (
+          <AuthEditor mode="request" value={request.auth} onChange={setAuth} />
         )}
         {activeTab === 'body' && (
           <div className="space-y-2">
