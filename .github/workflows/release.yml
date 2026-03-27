@@ -43,7 +43,7 @@ jobs:
         run: |
           mkdir -p upload
           shopt -s nullglob
-          for f in release/*.exe release/*.dmg release/*.AppImage release/*.blockmap; do
+          for f in release/*.exe release/*.dmg release/*.AppImage release/*.blockmap release/*.yml; do
             if [ -f "$f" ]; then cp "$f" upload/; fi
           done
           ls -la upload/

@@ -22,6 +22,7 @@ Built for people who liked the *simple* parts of the incumbent tools and resente
 - **Environments**: Named variable sets (Dev, Staging, Prod, …)
 - **Workspace sync (BYO)**: Local file, **S3-compatible** storage, or **Git**—pick the backend in *Workspace sync* (see below)
 - **Persistence**: Main window size and position, plus left/right panel widths, are remembered locally between sessions.
+- **Updates** (packaged installs): Background check against **GitHub Releases**; prompts to restart when a new installer is ready (via `electron-updater`).
 - **Keyboard shortcut**: Ctrl+Enter to send
 - **Themes**: Dark / light
 - **Post-request scripts**: Sandboxed JavaScript with a `bod` API for chaining tokens, assertions, and variable updates—editor includes syntax coloring, Tab inserts spaces, and **autocomplete for `bod`** (request, response, environment, collection variables).
@@ -146,12 +147,28 @@ npm run dist
 
 This runs `electron-vite build`, regenerates icons from `public/bod.png` (`npm run icons`), and produces installers under `release/` (Windows NSIS, macOS DMG, Linux AppImage). Use `npm run dist:dir` for an unpacked directory only (no installer).
 
+### Auto-updates (`electron-updater`)
+
+This follows the common **electron-builder + electron-updater** pattern (same tooling many Electron apps use):
+
+1. **Version** — The build stamps **`package.json` → `version`** into the app. At runtime the main process uses **`app.getVersion()`**; the UI shows it via **`window.electron.appGetVersion()`**. Tags and `package.json` must stay in sync (your release workflow already enforces this).
+
+2. **Where updates come from** — `electron-updater` reads **GitHub Releases** for the repo declared in **`package.json` → `repository`**. Set the `url` to your real GitHub repo (replace the `YOUR_GITHUB_ORG` placeholder in the template). electron-builder bakes the feed into the packaged app.
+
+3. **What to upload** — Each OS build outputs an installer **and** update metadata (`*.yml`, e.g. `latest.yml` / `latest-mac.yml` / `latest-linux.yml`) in `release/`. The **release workflow** attaches those YAML files next to the `.exe`, `.dmg`, and `.AppImage` so clients can compare versions and download the right asset for the current platform.
+
+4. **When it runs** — Update checks run only in **installed** builds, not in `npm run dev`. After launch, the app checks in the background; when a full update is downloaded, it offers **Restart now** to install.
+
+5. **macOS** — Unsigned builds may hit Gatekeeper or update limitations; **code signing** (and ideally **notarization**) is recommended for smooth updates in production.
+
+6. **Manual check** — The header includes **Check for updates**, or call **`window.electron.checkForUpdates()`** yourself. In dev it returns `{ ok: false, reason: 'development' }`; when packaged, `{ ok: true, isUpdateAvailable, availableVersion }` after the GitHub check finishes.
+
 ### Publishing a release (maintainers)
 
 1. Set `version` in `package.json` to the release (for example `0.2.0`) and commit.
 2. Tag and push: `git tag -a v0.2.0 -m "v0.2.0"` then `git push origin v0.2.0`.
 
-The tag **must** be `v` plus the exact `package.json` version (e.g. tag `v0.2.0` ↔ version `0.2.0`). Pushing the tag runs GitHub Actions, which builds Windows, macOS, and Linux artifacts and attaches them to the GitHub Release for that tag.
+The tag **must** be `v` plus the exact `package.json` version (e.g. tag `v0.2.0` ↔ version `0.2.0`). Pushing the tag runs GitHub Actions, which builds Windows, macOS, and Linux artifacts and attaches them to the GitHub Release for that tag (installers plus `*.yml` update metadata for auto-update).
 
 ---
 

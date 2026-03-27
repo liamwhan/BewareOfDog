@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { RequestBuilder } from './components/RequestBuilder'
 import { ResponseView } from './components/ResponseView'
 import { CollectionsPanel } from './components/CollectionsPanel'
@@ -28,6 +28,10 @@ function clampRight(w: number): number {
 }
 
 export default function App() {
+  const [appVersion, setAppVersion] = useState<string | null>(null)
+  const [updateChecking, setUpdateChecking] = useState(false)
+  const [updateFeedback, setUpdateFeedback] = useState<string | null>(null)
+  const updateFeedbackClearRef = useRef<number | null>(null)
   const [syncOpen, setSyncOpen] = useState(false)
   const [leftWidth, setLeftWidth] = useState(() => {
     const s = loadLayout()
@@ -54,6 +58,41 @@ export default function App() {
   }, [theme])
 
   useEffect(() => {
+    void window.electron.appGetVersion().then(setAppVersion)
+  }, [])
+
+  const onCheckForUpdates = useCallback(async () => {
+    if (updateFeedbackClearRef.current != null) {
+      window.clearTimeout(updateFeedbackClearRef.current)
+      updateFeedbackClearRef.current = null
+    }
+    setUpdateFeedback(null)
+    setUpdateChecking(true)
+    try {
+      const r = await window.electron.checkForUpdates()
+      if (!r.ok) {
+        if (r.reason === 'development') {
+          setUpdateFeedback('Updates apply to installed builds only.')
+        } else {
+          setUpdateFeedback(r.reason)
+        }
+      } else if (r.isUpdateAvailable && r.availableVersion) {
+        setUpdateFeedback(`Update v${r.availableVersion} found — downloading…`)
+      } else {
+        setUpdateFeedback('You’re on the latest version.')
+      }
+    } catch {
+      setUpdateFeedback('Could not check for updates.')
+    } finally {
+      setUpdateChecking(false)
+    }
+    updateFeedbackClearRef.current = window.setTimeout(() => {
+      setUpdateFeedback(null)
+      updateFeedbackClearRef.current = null
+    }, 8000)
+  }, [])
+
+  useEffect(() => {
     const t = window.setTimeout(() => {
       saveLayout({ leftWidth, rightWidth })
     }, 300)
@@ -69,6 +108,30 @@ export default function App() {
         <img src="./bod.png" alt="BewareOfDog" className="w-8 h-8 rounded-full shrink-0" />
         <h1 className="text-lg font-semibold">BewareOfDog</h1>
         <span className="text-slate-500 dark:text-slate-400 text-sm">REST API Debugger</span>
+        <div className="flex items-center gap-2 min-w-0 shrink-0">
+          {appVersion != null && (
+            <span className="text-slate-400 dark:text-slate-500 text-xs tabular-nums" title="Installed version">
+              v{appVersion}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => void onCheckForUpdates()}
+            disabled={updateChecking}
+            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-60 disabled:no-underline disabled:cursor-wait"
+            title="Check GitHub Releases for a newer build"
+          >
+            {updateChecking ? 'Checking…' : 'Check for updates'}
+          </button>
+          {updateFeedback != null && (
+            <span
+              className="text-xs text-slate-500 dark:text-slate-400 max-w-[min(280px,40vw)] truncate"
+              title={updateFeedback}
+            >
+              {updateFeedback}
+            </span>
+          )}
+        </div>
         <div className="flex-1" />
         <button
           type="button"

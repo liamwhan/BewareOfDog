@@ -7,6 +7,11 @@ import type {
 } from '../shared/syncTypes'
 
 const api = {
+  appGetVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
+  checkForUpdates: (): Promise<
+    | { ok: true; isUpdateAvailable: boolean; availableVersion?: string }
+    | { ok: false; reason: string }
+  > => ipcRenderer.invoke('app:checkForUpdates'),
   httpRequest: (payload: { method: string; url: string; headers?: Record<string, string>; body?: string }) =>
     ipcRenderer.invoke('http:request', payload),
   fileRead: (path: string) => ipcRenderer.invoke('file:read', path),

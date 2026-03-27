@@ -1,6 +1,7 @@
 import { ipcMain, app } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
+import { registerAutoUpdateIpc } from './autoUpdate'
 import { registerWorkspaceSyncIpc } from './workspace/syncIpc'
 import { routeWorkspaceLoad, routeWorkspaceSave } from './workspace/router'
 import type { WorkspaceLoadResult, WorkspaceSaveResult } from '../shared/syncTypes'
@@ -22,6 +23,7 @@ export interface HttpResponse {
 }
 
 export function registerIpcHandlers() {
+  registerAutoUpdateIpc()
   registerWorkspaceSyncIpc()
 
   ipcMain.handle('http:request', async (_event, payload: HttpRequestPayload): Promise<HttpResponse> => {

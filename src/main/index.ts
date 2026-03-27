@@ -1,6 +1,7 @@
 import { app, BrowserWindow, nativeImage } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
+import { setupAutoUpdater } from './autoUpdate'
 import { attachWindowStatePersistence, loadWindowState } from './windowState'
 
 let mainWindow: BrowserWindow | null = null
@@ -47,6 +48,9 @@ function createWindow() {
 app.whenReady().then(() => {
   registerIpcHandlers()
   createWindow()
+  if (app.isPackaged && mainWindow) {
+    setupAutoUpdater(mainWindow)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
