@@ -181,9 +181,18 @@ export default function App() {
           setUpdateReadyVersion(null)
           break
         case 'error':
+          if (updateFeedbackClearRef.current != null) {
+            window.clearTimeout(updateFeedbackClearRef.current)
+            updateFeedbackClearRef.current = null
+          }
           setUpdateChecking(false)
           setUpdateProgress(null)
           setUpdateFeedback(event.message)
+          console.error('[BewareOfDog] updater:', event.message)
+          updateFeedbackClearRef.current = window.setTimeout(() => {
+            setUpdateFeedback(null)
+            updateFeedbackClearRef.current = null
+          }, 120_000)
           break
       }
     })
@@ -244,7 +253,7 @@ export default function App() {
           )}
           {updateFeedback != null && (
             <span
-              className="text-xs text-slate-500 dark:text-slate-400 max-w-[min(280px,40vw)] truncate"
+              className="text-xs text-slate-500 dark:text-slate-400 max-w-[min(520px,55vw)] whitespace-normal break-words leading-snug"
               title={updateFeedback}
             >
               {updateFeedback}

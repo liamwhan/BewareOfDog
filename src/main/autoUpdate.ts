@@ -101,8 +101,11 @@ export function setupAutoUpdater(mainWindow: BrowserWindow | null): void {
     })
   })
 
-  autoUpdater.on('error', (err) => {
-    console.error('[BewareOfDog] autoUpdater error:', err)
+  autoUpdater.on('error', (err: Error & { cause?: unknown }) => {
+    const parts = [err?.message ?? String(err)]
+    if (err?.stack) parts.push(err.stack)
+    if (err?.cause != null) parts.push(`cause: ${String(err.cause)}`)
+    console.error('[BewareOfDog] autoUpdater error:\n', parts.join('\n'))
     emitUpdaterEvent({ type: 'error', message: err?.message ?? String(err) })
   })
 
