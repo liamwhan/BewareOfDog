@@ -118,6 +118,19 @@ export async function loadWorkspace(): Promise<LoadWorkspaceOutcome> {
   }
 }
 
+/** Set by PersistenceManager so sendRequest can record the last 2xx for workspace save. */
+let lastSuccessfulResponseSink: ((snap: LastSuccessfulResponseSnapshot) => void) | null = null
+
+export function registerLastSuccessfulResponseSink(
+  fn: ((snap: LastSuccessfulResponseSnapshot) => void) | null
+): void {
+  lastSuccessfulResponseSink = fn
+}
+
+export function emitLastSuccessfulResponse(snap: LastSuccessfulResponseSnapshot): void {
+  lastSuccessfulResponseSink?.(snap)
+}
+
 export async function saveWorkspace(
   data: WorkspaceData,
   options?: { ifVersionMatch?: string | null }

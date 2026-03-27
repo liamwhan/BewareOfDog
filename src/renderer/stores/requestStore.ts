@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import type { RequestAuth, Variable } from '../../shared/types'
+import type { Request, RequestAuth, Variable } from '../../shared/types'
 import { defaultRequestAuth } from '../../shared/auth'
+import { emitLastSuccessfulResponse, truncateResponseBodyForWorkspace } from '../lib/persistence'
 
 export interface QueryParam extends Variable {
   enabled: boolean
@@ -52,7 +53,10 @@ function truncateForConsole(s: string | undefined): string | undefined {
 interface RequestStore {
   request: RequestState
   response: ResponseState
-  httpConsoleLogs: HttpConsoleLogEntry[]
+  /** Request id for the currently edited request (matches collection selection). */
+  activeRequestId: string | null
+  /** Last completed response per request id (in-memory; switching requests restores from here). */
+  responseByRequestId: Record<string, ResponseState>
   setMethod: (method: string) => void
   setUrl: (url: string) => void
   setRouteParams: (params: Variable[]) => void
@@ -62,16 +66,11 @@ interface RequestStore {
   setPostRequestScript: (script: string | null) => void
   setAuth: (auth: RequestAuth) => void
   setResponse: (response: Partial<ResponseState>) => void
-  loadRequest: (request: {
-    method: string
-    url: string
-    routeParams: { key: string; value: string }[]
-    queryParams: Array<{ key: string; value: string; enabled?: boolean }>
-    headers: { key: string; value: string }[]
-    body: string | null
-    postRequestScript?: string | null
-    auth?: RequestAuth
-  }) => void
+  loadRequest: (request: Request) => void
+  /** Clear response cache and builder state before applying a loaded workspace document. */
+  prepareWorkspaceHydration: () => void
+  /** Seed a cached response (e.g. persisted last 2xx) before loadRequest. */
+  seedResponseForRequest: (requestId: string, response: Omit<ResponseState, 'loading'>) => void
   sendRequest: (resolvedUrl: string, resolvedHeaders: Record<string, string>, resolvedBody?: string) => Promise<void>
   clearHttpConsole: () => void
 }
@@ -99,6 +98,8 @@ const DEFAULT_RESPONSE: ResponseState = {
 export const useRequestStore = create<RequestStore>((set, get) => ({
   request: DEFAULT_REQUEST,
   response: DEFAULT_RESPONSE,
+  activeRequestId: null,
+  responseByRequestId: {},
   httpConsoleLogs: [],
 
   setMethod: (method) => set((s) => ({ request: { ...s.request, method } })),
@@ -117,35 +118,56 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
       response: { ...s.response, ...response }
     })),
 
-  loadRequest: (request: {
-    method: string
-    url: string
-    routeParams: { key: string; value: string }[]
-    queryParams: Array<{ key: string; value: string; enabled?: boolean }>
-    headers: { key: string; value: string }[]
-    body: string | null
-    postRequestScript?: string | null
-    auth?: RequestAuth
-  }) => {
+  prepareWorkspaceHydration: () =>
+    set({
+      responseByRequestId: {},
+      activeRequestId: null,
+      request: DEFAULT_REQUEST,
+      response: DEFAULT_RESPONSE
+    }),
+
+  seedResponseForRequest: (requestId, response) =>
     set((s) => ({
-      request: {
-        ...s.request,
-        method: request.method,
-        url: request.url,
-        routeParams: request.routeParams ?? [],
-        queryParams: (request.queryParams ?? []).map((q) => ({
-          ...q,
-          enabled: q.enabled !== false
-        })),
-        headers: request.headers ?? [],
-        body: request.body,
-        postRequestScript: request.postRequestScript ?? null,
-        auth: request.auth ?? defaultRequestAuth()
+      responseByRequestId: {
+        ...s.responseByRequestId,
+        [requestId]: { ...response, loading: false }
       }
-    }))
+    })),
+
+  loadRequest: (request) => {
+    set((s) => {
+      const prevId = s.activeRequestId
+      const nextCache = { ...s.responseByRequestId }
+      if (prevId && !s.response.loading) {
+        nextCache[prevId] = { ...s.response }
+      }
+      const id = request.id
+      const cached = nextCache[id]
+      const nextResponse = cached ? { ...cached } : { ...DEFAULT_RESPONSE }
+      return {
+        activeRequestId: id,
+        responseByRequestId: nextCache,
+        request: {
+          ...s.request,
+          method: request.method,
+          url: request.url,
+          routeParams: request.routeParams ?? [],
+          queryParams: (request.queryParams ?? []).map((q) => ({
+            ...q,
+            enabled: q.enabled !== false
+          })),
+          headers: request.headers ?? [],
+          body: request.body,
+          postRequestScript: request.postRequestScript ?? null,
+          auth: request.auth ?? defaultRequestAuth()
+        },
+        response: nextResponse
+      }
+    })
   },
 
   sendRequest: async (resolvedUrl, resolvedHeaders, resolvedBody) => {
+    const requestIdAtSend = get().activeRequestId
     set({ response: { ...DEFAULT_RESPONSE, loading: true } })
     const method = get().request.method
     const baseLog: HttpConsoleLogEntry = {
@@ -171,30 +193,70 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
         responseBody: truncateForConsole(res.body),
         durationMs: res.duration
       }
-      set((s) => ({
-        response: {
-          ...res,
-          loading: false
-        },
-        httpConsoleLogs: [entry, ...s.httpConsoleLogs].slice(0, CONSOLE_MAX_ENTRIES)
-      }))
+      const newRes: ResponseState = {
+        ...res,
+        loading: false
+      }
+      set((s) => {
+        const rid = requestIdAtSend
+        const nextLogs = [entry, ...s.httpConsoleLogs].slice(0, CONSOLE_MAX_ENTRIES)
+        if (!rid) {
+          return { response: newRes, httpConsoleLogs: nextLogs }
+        }
+        const nextCache = { ...s.responseByRequestId, [rid]: newRes }
+        if (s.activeRequestId !== rid) {
+          return { responseByRequestId: nextCache, httpConsoleLogs: nextLogs }
+        }
+        return {
+          response: newRes,
+          responseByRequestId: nextCache,
+          httpConsoleLogs: nextLogs
+        }
+      })
+      if (
+        requestIdAtSend &&
+        res.status >= 200 &&
+        res.status < 300
+      ) {
+        emitLastSuccessfulResponse({
+          requestId: requestIdAtSend,
+          status: res.status,
+          statusText: res.statusText,
+          headers: res.headers,
+          body: truncateResponseBodyForWorkspace(res.body),
+          duration: res.duration
+        })
+      }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       const entry: HttpConsoleLogEntry = {
         ...baseLog,
         error: errMsg
       }
-      set((s) => ({
-        response: {
-          status: 0,
-          statusText: 'Error',
-          headers: {},
-          body: JSON.stringify({ error: errMsg }, null, 2),
-          duration: 0,
-          loading: false
-        },
-        httpConsoleLogs: [entry, ...s.httpConsoleLogs].slice(0, CONSOLE_MAX_ENTRIES)
-      }))
+      const newRes: ResponseState = {
+        status: 0,
+        statusText: 'Error',
+        headers: {},
+        body: JSON.stringify({ error: errMsg }, null, 2),
+        duration: 0,
+        loading: false
+      }
+      set((s) => {
+        const rid = requestIdAtSend
+        const nextLogs = [entry, ...s.httpConsoleLogs].slice(0, CONSOLE_MAX_ENTRIES)
+        if (!rid) {
+          return { response: newRes, httpConsoleLogs: nextLogs }
+        }
+        const nextCache = { ...s.responseByRequestId, [rid]: newRes }
+        if (s.activeRequestId !== rid) {
+          return { responseByRequestId: nextCache, httpConsoleLogs: nextLogs }
+        }
+        return {
+          response: newRes,
+          responseByRequestId: nextCache,
+          httpConsoleLogs: nextLogs
+        }
+      })
     }
   },
 

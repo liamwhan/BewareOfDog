@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { LastSuccessfulResponseSnapshot, WorkspaceData } from '../../shared/workspace'
-import { loadWorkspace, saveWorkspace, truncateResponseBodyForWorkspace } from '../lib/persistence'
+import { loadWorkspace, registerLastSuccessfulResponseSink, saveWorkspace } from '../lib/persistence'
 import { useCollectionStore } from '../stores/collectionStore'
 import { useEnvironmentStore } from '../stores/environmentStore'
 import { useRequestStore } from '../stores/requestStore'
@@ -11,36 +11,29 @@ function applyWorkspaceToStores(
   data: WorkspaceData,
   lastSuccessfulRef: { current: LastSuccessfulResponseSnapshot | null }
 ) {
+  useRequestStore.getState().prepareWorkspaceHydration()
+
   useCollectionStore.getState().setCollections(data.collections)
   useCollectionStore.getState().selectRequest(data.selectedRequestId)
   useEnvironmentStore.getState().setEnvironments(data.environments)
   useEnvironmentStore.getState().setActiveEnvironment(data.activeEnvironmentId)
-  if (data.selectedRequestId) {
-    const req = data.collections.flatMap((c) => c.requests).find((r) => r.id === data.selectedRequestId)
-    if (req) useCollectionStore.getState().loadRequestIntoBuilder(req)
-  }
 
   lastSuccessfulRef.current = data.lastSuccessfulResponse ?? null
 
   const snap = data.lastSuccessfulResponse
-  if (snap && snap.requestId === data.selectedRequestId) {
-    useRequestStore.getState().setResponse({
+  if (snap) {
+    useRequestStore.getState().seedResponseForRequest(snap.requestId, {
       status: snap.status,
       statusText: snap.statusText,
       headers: snap.headers,
       body: snap.body,
-      duration: snap.duration,
-      loading: false
+      duration: snap.duration
     })
-  } else {
-    useRequestStore.getState().setResponse({
-      status: 0,
-      statusText: '',
-      headers: {},
-      body: '',
-      duration: 0,
-      loading: false
-    })
+  }
+
+  if (data.selectedRequestId) {
+    const req = data.collections.flatMap((c) => c.requests).find((r) => r.id === data.selectedRequestId)
+    if (req) useCollectionStore.getState().loadRequestIntoBuilder(req)
   }
 }
 
@@ -74,6 +67,13 @@ export function PersistenceManager() {
     window.addEventListener('bewareofdog:workspace-pull', onPullRequest)
     return () => window.removeEventListener('bewareofdog:workspace-pull', onPullRequest)
   }, [pullRemote])
+
+  useEffect(() => {
+    registerLastSuccessfulResponseSink((snap) => {
+      lastSuccessfulResponseRef.current = snap
+    })
+    return () => registerLastSuccessfulResponseSink(null)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -138,19 +138,7 @@ export function PersistenceManager() {
     const unsubEnv = useEnvironmentStore.subscribe(scheduleSave)
 
     const unsubReq = useRequestStore.subscribe((state, prev) => {
-      if (state.response === prev.response) return
-      const r = state.response
-      const selId = useCollectionStore.getState().selectedRequestId
-      if (!r.loading && r.status >= 200 && r.status < 300 && selId) {
-        lastSuccessfulResponseRef.current = {
-          requestId: selId,
-          status: r.status,
-          statusText: r.statusText,
-          headers: r.headers,
-          body: truncateResponseBodyForWorkspace(r.body),
-          duration: r.duration
-        }
-      }
+      if (state.response === prev.response && state.responseByRequestId === prev.responseByRequestId) return
       scheduleSave()
     })
 
