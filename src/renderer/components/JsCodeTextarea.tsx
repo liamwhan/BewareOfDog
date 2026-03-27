@@ -7,7 +7,12 @@ import {
   useState,
   type KeyboardEvent
 } from 'react'
-import { getBodCompletionContext, getBodSuggestions } from '../../shared/bodCompletion'
+import {
+  getBodCompletionContext,
+  getBodSuggestionItems,
+  type BodSuggestionItem
+} from '../../shared/bodCompletion'
+import { getTextareaCaretOffset } from '../lib/textareaCaretOffset'
 import { tokenizeJs, type JsTokenKind } from '../../shared/jsSyntaxTokens'
 
 const TAB_SPACES = '    '
@@ -33,9 +38,33 @@ export interface JsCodeTextareaProps {
   className?: string
 }
 
+function SuggestionKindIcon({ kind }: { kind: BodSuggestionItem['kind'] }) {
+  if (kind === 'method') {
+    return (
+      <svg
+        className="h-3.5 w-3.5 shrink-0 text-sky-400"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        aria-hidden
+      >
+        <path d="M4 3.5c-1.2 2.2-1.2 7.3 0 9.5M12 3.5c1.2 2.2 1.2 7.3 0 9.5M6.5 8h3" />
+      </svg>
+    )
+  }
+  return (
+    <svg className="h-3.5 w-3.5 shrink-0 text-amber-300/90" viewBox="0 0 16 16" aria-hidden>
+      <rect x="4" y="5" width="8" height="6" rx="1" fill="currentColor" opacity="0.85" />
+    </svg>
+  )
+}
+
 /**
  * Monospace script field with lightweight JS highlighting. Spellcheck disabled for code.
- * `bod.` completions only; Tab inserts four spaces (does not move focus).
+ * `bod.` completions only; Tab inserts four spaces when no list is open, or accepts the
+ * highlighted suggestion when the completion list is visible.
  */
 export function JsCodeTextarea({
   value,
@@ -44,6 +73,7 @@ export function JsCodeTextarea({
   heightClass = 'h-40',
   className = ''
 }: JsCodeTextareaProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const preRef = useRef<HTMLPreElement>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -51,6 +81,14 @@ export function JsCodeTextarea({
   const [caret, setCaret] = useState(0)
   const [pickIndex, setPickIndex] = useState(0)
   const [suppressSuggestions, setSuppressSuggestions] = useState(false)
+  const [scrollTick, setScrollTick] = useState(0)
+  const [popupStyle, setPopupStyle] = useState<{
+    left: number
+    top: number
+    maxWidth: number
+  } | null>(null)
+
+  const popupPlacement = popupStyle ?? { left: 0, top: 0, maxWidth: 320 }
 
   const tokens = useMemo(() => tokenizeJs(value), [value])
 
@@ -58,7 +96,7 @@ export function JsCodeTextarea({
   const suggestions = useMemo(() => {
     if (suppressSuggestions) return []
     if (!bodCtx) return []
-    return getBodSuggestions(bodCtx)
+    return getBodSuggestionItems(bodCtx)
   }, [bodCtx, suppressSuggestions])
 
   useEffect(() => {
@@ -116,9 +154,44 @@ export function JsCodeTextarea({
     [value, onChange, bodCtx]
   )
 
+  useLayoutEffect(() => {
+    if (suggestions.length === 0) {
+      setPopupStyle(null)
+      return
+    }
+    const ta = taRef.current
+    const wrap = containerRef.current
+    if (!ta || !wrap) return
+
+    const coords = getTextareaCaretOffset(ta, caret)
+    const gap = 4
+    const pad = 8
+    const containerW = wrap.clientWidth
+    const listW = listRef.current?.offsetWidth ?? 0
+    const preferredLeft = coords.left + gap
+    let left = preferredLeft
+    if (listW > 0 && preferredLeft + listW > containerW - pad) {
+      const leftOfCaret = coords.left - gap - listW
+      if (leftOfCaret >= pad) {
+        left = leftOfCaret
+      } else {
+        left = Math.max(pad, containerW - listW - pad)
+      }
+    }
+    const maxWidth = Math.max(160, containerW - left - pad)
+    setPopupStyle({ left, top: coords.top, maxWidth })
+  }, [suggestions.length, caret, value, pickIndex, scrollTick])
+
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Tab') {
+        if (suggestions.length > 0) {
+          e.preventDefault()
+          e.stopPropagation()
+          const pick = suggestions[pickIndex] ?? suggestions[0]
+          if (pick) applyCompletion(pick.label)
+          return
+        }
         e.preventDefault()
         e.stopPropagation()
         insertAtSelection(TAB_SPACES)
@@ -146,7 +219,7 @@ export function JsCodeTextarea({
       if (e.key === 'Enter') {
         e.preventDefault()
         const pick = suggestions[pickIndex] ?? suggestions[0]
-        if (pick) applyCompletion(pick)
+        if (pick) applyCompletion(pick.label)
       }
     },
     [insertAtSelection, suggestions, pickIndex, applyCompletion]
@@ -159,11 +232,16 @@ export function JsCodeTextarea({
     row?.scrollIntoView({ block: 'nearest' })
   }, [pickIndex, suggestions.length])
 
+  const syncScrollAndPopup = useCallback(() => {
+    syncScroll()
+    setScrollTick((n) => n + 1)
+  }, [syncScroll])
+
   const layerClass =
     'w-full box-border px-3 py-2 text-sm font-mono leading-normal whitespace-pre tab-size-[4] overflow-auto resize-none'
 
   return (
-    <div className={`relative rounded border border-slate-600 bg-slate-800 ${className}`}>
+    <div ref={containerRef} className={`relative rounded border border-slate-600 bg-slate-800 ${className}`}>
       <pre
         ref={preRef}
         aria-hidden
@@ -187,7 +265,7 @@ export function JsCodeTextarea({
         onClick={updateCaretFromDom}
         onKeyUp={updateCaretFromDom}
         onKeyDown={onKeyDown}
-        onScroll={syncScroll}
+        onScroll={syncScrollAndPopup}
         spellCheck={false}
         autoCorrect="off"
         autoCapitalize="off"
@@ -200,24 +278,31 @@ export function JsCodeTextarea({
           ref={listRef}
           role="listbox"
           aria-label="bod API suggestions"
-          className="absolute z-20 left-0 right-0 mt-0.5 max-h-36 overflow-y-auto rounded border border-slate-600 bg-slate-900 shadow-lg text-sm font-mono"
+          style={{
+            left: popupPlacement.left,
+            top: popupPlacement.top,
+            maxWidth: popupPlacement.maxWidth
+          }}
+          className="absolute z-30 min-w-[10rem] max-h-36 overflow-y-auto rounded border border-slate-600 bg-slate-900 shadow-xl text-sm font-mono"
         >
           {suggestions.map((s, i) => (
             <button
-              key={s}
+              key={s.label}
               type="button"
               role="option"
               aria-selected={i === pickIndex}
-              className={`w-full text-left px-2 py-1 hover:bg-slate-700/80 ${
+              title={s.kind === 'method' ? 'Method' : 'Property'}
+              className={`flex w-full items-center gap-2 text-left px-2 py-1 hover:bg-slate-700/80 ${
                 i === pickIndex ? 'bg-slate-700 text-slate-100' : 'text-slate-200'
               }`}
               onMouseDown={(e) => {
                 e.preventDefault()
-                applyCompletion(s)
+                applyCompletion(s.label)
               }}
               onMouseEnter={() => setPickIndex(i)}
             >
-              {s}
+              <SuggestionKindIcon kind={s.kind} />
+              <span className="min-w-0 flex-1 truncate">{s.label}</span>
             </button>
           ))}
         </div>

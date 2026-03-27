@@ -85,10 +85,30 @@ export function getBodCompletionContext(value: string, caret: number): BodComple
   return null
 }
 
-export function getBodSuggestions(ctx: BodCompletionContext): string[] {
+/** Callable members on `bod` (and nested objects) vs data fields. */
+const BOD_METHOD_NAMES = new Set(['json', 'text', 'get', 'set'])
+
+export type BodSuggestionKind = 'method' | 'property'
+
+export interface BodSuggestionItem {
+  label: string
+  kind: BodSuggestionKind
+}
+
+export function kindForBodSuggestion(label: string): BodSuggestionKind {
+  return BOD_METHOD_NAMES.has(label) ? 'method' : 'property'
+}
+
+export function getBodSuggestionItems(ctx: BodCompletionContext): BodSuggestionItem[] {
   const children = bodChildrenForPath(ctx.path)
   if (children === null) return []
-  return filterPrefix(children, ctx.partial).sort()
+  return filterPrefix(children, ctx.partial)
+    .sort()
+    .map((label) => ({ label, kind: kindForBodSuggestion(label) }))
+}
+
+export function getBodSuggestions(ctx: BodCompletionContext): string[] {
+  return getBodSuggestionItems(ctx).map((i) => i.label)
 }
 
 /** For docs / tests — describes the public `bod` surface. */
