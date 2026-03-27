@@ -14,6 +14,10 @@ import { RouteParamsEditor } from './RouteParamsEditor'
 import { QueryParamsEditor } from './QueryParamsEditor'
 import { KeyValueEditor } from './KeyValueEditor'
 import { AuthEditor } from '../AuthEditor'
+import { InputWithVariableTooltips } from '../VariableFieldWithTooltips'
+import { JsCodeTextarea } from '../JsCodeTextarea'
+import { JsonCodeTextarea } from '../JsonCodeTextarea'
+import type { VariableTooltipContext } from '../VariableFieldWithTooltips'
 import type { Variable } from '../../../shared/types'
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
@@ -50,6 +54,8 @@ export function RequestBuilder() {
     }
     return []
   })()
+
+  const variableContext: VariableTooltipContext = { envVars, collectionVars }
 
   const [activeTab, setActiveTab] = useState<
     'params' | 'query' | 'headers' | 'auth' | 'body' | 'scripts'
@@ -192,12 +198,13 @@ export function RequestBuilder() {
             </option>
           ))}
         </select>
-        <input
-          type="text"
+        <InputWithVariableTooltips
           value={request.url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={setUrl}
+          variableContext={variableContext}
           placeholder="https://api.example.com/endpoint"
-          className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 placeholder-slate-500 font-mono"
+          aria-label="Request URL"
+          className="flex-1 min-w-0 font-mono text-sm"
         />
         <button
           onClick={handleSend}
@@ -229,12 +236,14 @@ export function RequestBuilder() {
             url={request.url}
             params={request.routeParams}
             onChange={setRouteParams}
+            variableContext={variableContext}
           />
         )}
         {activeTab === 'query' && (
           <QueryParamsEditor
             params={queryParamsWithEnabled}
             onChange={setQueryParams}
+            variableContext={variableContext}
           />
         )}
         {activeTab === 'headers' && (
@@ -243,18 +252,23 @@ export function RequestBuilder() {
             onChange={setHeaders}
             keyPlaceholder="Header name"
             valuePlaceholder="Value"
+            variableContext={variableContext}
           />
         )}
         {activeTab === 'auth' && (
-          <AuthEditor mode="request" value={request.auth} onChange={setAuth} />
+          <AuthEditor
+            mode="request"
+            value={request.auth}
+            onChange={setAuth}
+            variableContext={variableContext}
+          />
         )}
         {activeTab === 'body' && (
           <div className="space-y-2">
-            <textarea
+            <JsonCodeTextarea
               value={request.body ?? ''}
-              onChange={(e) => setBody(e.target.value || null)}
+              onChange={(v) => setBody(v || null)}
               placeholder='{"key": "value"}'
-              className="w-full h-40 px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 font-mono placeholder-slate-500 resize-none"
             />
           </div>
         )}
@@ -263,15 +277,15 @@ export function RequestBuilder() {
             <p className="text-slate-400 text-sm mb-2">
               JavaScript that runs after the response. Use <code className="bg-slate-800 px-1 rounded">bod</code> to access request, response, and variables.
             </p>
-            <textarea
+            <JsCodeTextarea
               value={request.postRequestScript ?? ''}
-              onChange={(e) => {
-                const v = e.target.value || null
-                setPostRequestScript(v)
+              onChange={(v) => {
+                const next = v || null
+                setPostRequestScript(next)
                 const sel = useCollectionStore.getState().getSelectedCollection()
                 const req = useCollectionStore.getState().getSelectedRequest()
                 if (sel && req) {
-                  useCollectionStore.getState().updateRequest(sel.index, req.id, { postRequestScript: v })
+                  useCollectionStore.getState().updateRequest(sel.index, req.id, { postRequestScript: next })
                 }
               }}
               placeholder={`// Example: extract token and save to env
@@ -279,7 +293,6 @@ const json = bod.response.json();
 if (json.token) {
   bod.environment.set('token', json.token);
 }`}
-              className="w-full h-40 px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 font-mono placeholder-slate-500 resize-none"
             />
             {scriptError && (
               <p className="text-red-400 text-sm">Script error: {scriptError}</p>

@@ -1,5 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRequestStore } from '../../stores/requestStore'
+import { JsonHighlightPre } from '../JsonCodeTextarea'
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return false
+  }
+}
 
 function formatHeaders(headers: Record<string, string>): string {
   return Object.entries(headers)
@@ -10,6 +20,11 @@ function formatHeaders(headers: Record<string, string>): string {
 export function ResponseView() {
   const { response } = useRequestStore()
   const [activeTab, setActiveTab] = useState<'body' | 'headers'>('body')
+  const [bodyCopied, setBodyCopied] = useState(false)
+
+  useEffect(() => {
+    setBodyCopied(false)
+  }, [response.body])
 
   const statusColor =
     response.status >= 200 && response.status < 300
@@ -61,9 +76,30 @@ export function ResponseView() {
 
       <div className="flex-1 min-h-0 overflow-auto">
         {activeTab === 'body' && (
-          <pre className="p-4 text-sm font-mono text-slate-400 whitespace-pre-wrap break-words bg-slate-900 rounded">
-            {response.body || '(empty)'}
-          </pre>
+          <div className="p-4 bg-slate-900 rounded min-h-0 flex flex-col gap-2">
+            {response.body ? (
+              <>
+                <div className="flex justify-end shrink-0">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const ok = await copyText(response.body)
+                      if (ok) {
+                        setBodyCopied(true)
+                        window.setTimeout(() => setBodyCopied(false), 1500)
+                      }
+                    }}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline"
+                  >
+                    {bodyCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <JsonHighlightPre value={response.body} className="text-slate-100 min-h-0" />
+              </>
+            ) : (
+              <pre className="text-sm font-mono text-slate-500 whitespace-pre-wrap">(empty)</pre>
+            )}
+          </div>
         )}
         {activeTab === 'headers' && (
           <pre className="p-4 text-sm font-mono text-slate-400 whitespace-pre-wrap break-words bg-slate-900 rounded">
