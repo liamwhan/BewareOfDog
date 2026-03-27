@@ -31,6 +31,9 @@ export default function App() {
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [updateChecking, setUpdateChecking] = useState(false)
   const [updateFeedback, setUpdateFeedback] = useState<string | null>(null)
+  const [updateReadyVersion, setUpdateReadyVersion] = useState<string | null>(null)
+  const [updateProgress, setUpdateProgress] = useState<number | null>(null)
+  const [installingUpdate, setInstallingUpdate] = useState(false)
   const updateFeedbackClearRef = useRef<number | null>(null)
   const [syncOpen, setSyncOpen] = useState(false)
   const [leftWidth, setLeftWidth] = useState(() => {
@@ -67,6 +70,8 @@ export default function App() {
       updateFeedbackClearRef.current = null
     }
     setUpdateFeedback(null)
+    setUpdateReadyVersion(null)
+    setUpdateProgress(null)
     setUpdateChecking(true)
     try {
       const r = await window.electron.checkForUpdates()
@@ -77,9 +82,9 @@ export default function App() {
           setUpdateFeedback(r.reason)
         }
       } else if (r.isUpdateAvailable && r.availableVersion) {
-        setUpdateFeedback(`Update v${r.availableVersion} found — downloading…`)
+        setUpdateFeedback(`Update v${r.availableVersion} found - downloading...`)
       } else {
-        setUpdateFeedback('You’re on the latest version.')
+        setUpdateFeedback("You're on the latest version.")
       }
     } catch {
       setUpdateFeedback('Could not check for updates.')
@@ -90,6 +95,69 @@ export default function App() {
       setUpdateFeedback(null)
       updateFeedbackClearRef.current = null
     }, 8000)
+  }, [])
+
+  const onInstallUpdate = useCallback(async () => {
+    setInstallingUpdate(true)
+    try {
+      const result = await window.electron.installUpdate()
+      if (!result.ok) {
+        setUpdateFeedback(
+          result.reason === 'development' ? 'Updates apply to installed builds only.' : result.reason
+        )
+        return
+      }
+      setUpdateFeedback('Installing update...')
+    } catch {
+      setUpdateFeedback('Could not start update install.')
+    } finally {
+      setInstallingUpdate(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onUpdaterEvent((event) => {
+      switch (event.type) {
+        case 'checking':
+          setUpdateChecking(true)
+          break
+        case 'available':
+          setUpdateFeedback(
+            event.version
+              ? `Update v${event.version} found - downloading...`
+              : 'Update found - downloading...'
+          )
+          setUpdateReadyVersion(null)
+          setUpdateProgress(0)
+          break
+        case 'download-progress':
+          setUpdateChecking(false)
+          setUpdateProgress(Math.max(0, Math.min(100, event.percent)))
+          setUpdateFeedback(`Downloading update... ${Math.round(event.percent)}%`)
+          break
+        case 'downloaded':
+          setUpdateChecking(false)
+          setUpdateProgress(100)
+          setUpdateReadyVersion(event.version ?? 'latest')
+          setUpdateFeedback(
+            event.version
+              ? `Update v${event.version} is ready to install.`
+              : 'Update downloaded and ready to install.'
+          )
+          break
+        case 'not-available':
+          setUpdateChecking(false)
+          setUpdateProgress(null)
+          setUpdateReadyVersion(null)
+          break
+        case 'error':
+          setUpdateChecking(false)
+          setUpdateProgress(null)
+          setUpdateFeedback(event.message)
+          break
+      }
+    })
+    return () => unsubscribe()
   }, [])
 
   useEffect(() => {
@@ -117,18 +185,34 @@ export default function App() {
           <button
             type="button"
             onClick={() => void onCheckForUpdates()}
-            disabled={updateChecking}
+            disabled={updateChecking || installingUpdate}
             className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-60 disabled:no-underline disabled:cursor-wait"
             title="Check GitHub Releases for a newer build"
           >
-            {updateChecking ? 'Checking…' : 'Check for updates'}
+            {updateChecking ? 'Checking...' : 'Check for updates'}
           </button>
+          {updateReadyVersion != null && (
+            <button
+              type="button"
+              onClick={() => void onInstallUpdate()}
+              disabled={installingUpdate}
+              className="text-xs text-amber-600 dark:text-amber-400 hover:underline disabled:opacity-60"
+              title="Restart now and install downloaded update"
+            >
+              {installingUpdate ? 'Installing...' : 'Install update'}
+            </button>
+          )}
           {updateFeedback != null && (
             <span
               className="text-xs text-slate-500 dark:text-slate-400 max-w-[min(280px,40vw)] truncate"
               title={updateFeedback}
             >
               {updateFeedback}
+            </span>
+          )}
+          {updateProgress != null && updateProgress > 0 && updateProgress < 100 && (
+            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+              {Math.round(updateProgress)}%
             </span>
           )}
         </div>

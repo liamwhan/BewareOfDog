@@ -6,12 +6,27 @@ import type {
   WorkspaceSyncSettingsDTO
 } from '../shared/syncTypes'
 
+export type UpdaterEventPayload =
+  | { type: 'checking' }
+  | { type: 'available'; version?: string }
+  | { type: 'not-available' }
+  | { type: 'download-progress'; percent: number; bytesPerSecond: number }
+  | { type: 'downloaded'; version?: string }
+  | { type: 'error'; message: string }
+
 const api = {
   appGetVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
   checkForUpdates: (): Promise<
     | { ok: true; isUpdateAvailable: boolean; availableVersion?: string }
     | { ok: false; reason: string }
   > => ipcRenderer.invoke('app:checkForUpdates'),
+  installUpdate: (): Promise<{ ok: true } | { ok: false; reason: string }> =>
+    ipcRenderer.invoke('app:installUpdate'),
+  onUpdaterEvent: (listener: (payload: UpdaterEventPayload) => void): (() => void) => {
+    const handler = (_event: unknown, payload: UpdaterEventPayload) => listener(payload)
+    ipcRenderer.on('updater:event', handler)
+    return () => ipcRenderer.removeListener('updater:event', handler)
+  },
   httpRequest: (payload: { method: string; url: string; headers?: Record<string, string>; body?: string }) =>
     ipcRenderer.invoke('http:request', payload),
   fileRead: (path: string) => ipcRenderer.invoke('file:read', path),

@@ -13,6 +13,21 @@ const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater') as typeof import('electron-updater')
 
 let started = false
+let appWindow: BrowserWindow | null = null
+
+type UpdaterEventPayload =
+  | { type: 'checking' }
+  | { type: 'available'; version?: string }
+  | { type: 'not-available' }
+  | { type: 'download-progress'; percent: number; bytesPerSecond: number }
+  | { type: 'downloaded'; version?: string }
+  | { type: 'error'; message: string }
+
+function emitUpdaterEvent(payload: UpdaterEventPayload): void {
+  const wc = appWindow?.webContents
+  if (!wc || wc.isDestroyed()) return
+  wc.send('updater:event', payload)
+}
 
 export function registerAutoUpdateIpc(): void {
   ipcMain.handle('app:getVersion', (): string => app.getVersion())
@@ -27,6 +42,7 @@ export function registerAutoUpdateIpc(): void {
         return { ok: false, reason: 'development' }
       }
       try {
+        emitUpdaterEvent({ type: 'checking' })
         const result = await autoUpdater.checkForUpdates()
         return {
           ok: true,
@@ -39,28 +55,59 @@ export function registerAutoUpdateIpc(): void {
       }
     }
   )
+
+  ipcMain.handle('app:installUpdate', (): { ok: true } | { ok: false; reason: string } => {
+    if (!app.isPackaged) {
+      return { ok: false, reason: 'development' }
+    }
+    try {
+      setImmediate(() => {
+        autoUpdater.quitAndInstall(false, true)
+      })
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, reason: e instanceof Error ? e.message : String(e) }
+    }
+  })
 }
 
 export function setupAutoUpdater(mainWindow: BrowserWindow | null): void {
   if (!app.isPackaged || started) return
   started = true
+  appWindow = mainWindow ?? null
 
   autoUpdater.autoDownload = true
   autoUpdater.allowDowngrade = false
 
+  autoUpdater.on('checking-for-update', () => {
+    emitUpdaterEvent({ type: 'checking' })
+  })
+
   autoUpdater.on('update-available', (info) => {
     console.log('[BewareOfDog] Update available:', info.version)
+    emitUpdaterEvent({ type: 'available', version: info.version })
   })
 
   autoUpdater.on('update-not-available', () => {
     console.log('[BewareOfDog] App is up to date')
+    emitUpdaterEvent({ type: 'not-available' })
+  })
+
+  autoUpdater.on('download-progress', (progress) => {
+    emitUpdaterEvent({
+      type: 'download-progress',
+      percent: progress.percent,
+      bytesPerSecond: progress.bytesPerSecond
+    })
   })
 
   autoUpdater.on('error', (err) => {
     console.error('[BewareOfDog] autoUpdater error:', err)
+    emitUpdaterEvent({ type: 'error', message: err?.message ?? String(err) })
   })
 
   autoUpdater.on('update-downloaded', (info) => {
+    emitUpdaterEvent({ type: 'downloaded', version: info.version })
     const parent = mainWindow ?? undefined
     void dialog
       .showMessageBox(parent, {
