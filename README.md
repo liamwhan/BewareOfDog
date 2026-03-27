@@ -14,15 +14,17 @@ Built for people who liked the *simple* parts of the incumbent tools and resente
 
 ## Features
 
-- **Request builder**: Method, URL, route/query params, headers, body
-- **Response view**: Status, timing, body (JSON or text), headers
-- **Collections**: Full CRUD; import **Postman Collection v2.1** or native JSON, export as portable BewareOfDog JSON
-- **Variables**: Environment and collection variables with `{{var}}` interpolation
+- **Request builder**: Method, URL, route/query params, headers, JSON body with lightweight syntax coloring, and per-request auth. Invalid or unresolved URLs are caught before the request runs.
+- **Variables**: Environment and collection variables with `{{var}}` interpolation; hover supported fields to see **resolved values** (with scope when it helps).
+- **Response view**: Status, timing, headers, and body with JSON-aware coloring (keys vs values). **Copy** the response body in one click.
+- **HTTP console**: A docked log of recent requests and responses—handy when you’re iterating fast.
+- **Collections**: Full CRUD; import **Postman Collection v2.1**, **OpenAPI 3.x** (JSON), or native JSON; export as portable BewareOfDog JSON.
 - **Environments**: Named variable sets (Dev, Staging, Prod, …)
 - **Workspace sync (BYO)**: Local file, **S3-compatible** storage, or **Git**—pick the backend in *Workspace sync* (see below)
+- **Persistence**: Main window size and position, plus left/right panel widths, are remembered locally between sessions.
 - **Keyboard shortcut**: Ctrl+Enter to send
 - **Themes**: Dark / light
-- **Post-request scripts**: Sandboxed JavaScript with a `bod` API for chaining tokens, assertions, and variable updates
+- **Post-request scripts**: Sandboxed JavaScript with a `bod` API for chaining tokens, assertions, and variable updates—editor includes syntax coloring, Tab inserts spaces, and **autocomplete for `bod`** (request, response, environment, collection variables).
 
 ## Workspace sync—your cloud, your repo
 
@@ -89,6 +91,8 @@ macOS builds are not notarized; you may need to use **Open** from the context me
 
 ## Import formats
 
+**OpenAPI 3.x.** Use **Import** in the collections panel with an OpenAPI **JSON** document (paste or file). Operations become requests; servers and path/query parameters are mapped where possible so you can send traffic quickly from a spec you already trust.
+
 **You can bring your existing Postman work.** BewareOfDog imports **Postman Collection v2.1**—export your collection from Postman, use **Import** in the collections panel, and you’re back to a full request list without rebuilding endpoints from scratch. Names, variables, methods, URLs, query and path params, headers, and common body types (raw, urlencoded, typical form and GraphQL shapes) come across; Bearer, Basic, and API-key-in-header auth map to headers so you stay productive on day one.
 
 **Your collections, your format on disk.** For save, backup, and workspace sync, BewareOfDog uses the open **BewareOfDog JSON** shape shown under [Collection Format](#collection-format)—readable, diff-friendly, and a natural fit for Git and S3-backed workspaces. That’s the format **Export** uses: portable, yours, and aligned with how the app stores data—not a closed vendor bundle.
@@ -110,7 +114,7 @@ macOS builds are not notarized; you may need to use **Open** from the context me
 
 ## Post-request Scripts
 
-Scripts run in a sandboxed context with access to the `bod` object:
+Scripts run in a sandboxed context with access to the `bod` object. The script editor highlights JavaScript, inserts four spaces on Tab (so focus doesn’t jump away), and suggests members after you type `bod.` (for example `bod.response.json()`).
 
 ```javascript
 // bod.request - { method, url, headers }
