@@ -163,7 +163,7 @@ export default function App() {
         case 'download-progress':
           setUpdateChecking(false)
           setUpdateProgress(Math.max(0, Math.min(100, event.percent)))
-          setUpdateFeedback(`Downloading update... ${Math.round(event.percent)}%`)
+          setUpdateFeedback('Downloading update…')
           break
         case 'downloaded':
           setUpdateChecking(false)
