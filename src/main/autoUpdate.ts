@@ -5,8 +5,12 @@
  * Requires release assets to include electron-builder update metadata (*.yml) next to installers.
  */
 import { app, dialog, type BrowserWindow } from 'electron'
-import { autoUpdater } from 'electron-updater'
 import { ipcMain } from 'electron'
+import { createRequire } from 'node:module'
+
+/** CJS-only package: named ESM imports fail at runtime; use require interop. */
+const require = createRequire(import.meta.url)
+const { autoUpdater } = require('electron-updater') as typeof import('electron-updater')
 
 let started = false
 
