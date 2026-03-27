@@ -29,7 +29,7 @@ Built for people who liked the *simple* parts of the incumbent tools and resente
 
 ## Workspace sync—your cloud, your repo
 
-Stop exporting ZIPs to Slack. BewareOfDog persists your whole workspace (collections, environments, and UI selection state) as a single JSON document and lets you **back it with infrastructure you already pay for**:
+Stop exporting ZIPs to Slack. BewareOfDog persists your whole workspace (collections, environments, **which request is selected**, and the **last successful HTTP response** for that request when applicable) as a single JSON document and lets you **back it with infrastructure you already pay for**:
 
 | Mode | Best for |
 |------|----------|

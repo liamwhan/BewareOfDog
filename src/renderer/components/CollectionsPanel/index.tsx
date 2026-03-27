@@ -54,6 +54,29 @@ export function CollectionsPanel() {
     if (editing) editInputRef.current?.focus()
   }, [editing])
 
+  useEffect(() => {
+    if (!selectedRequestId) return
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      for (let i = 0; i < collections.length; i++) {
+        if (collections[i].requests.some((r) => r.id === selectedRequestId)) {
+          next.add(i)
+          break
+        }
+      }
+      return next
+    })
+  }, [selectedRequestId, collections])
+
+  useEffect(() => {
+    if (!selectedRequestId) return
+    const id = window.requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-bod-request-id="${CSS.escape(selectedRequestId)}"]`)
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [selectedRequestId, collections, expanded])
+
   const handleRenameCollection = (i: number) => {
     setContextMenu(null)
     setEditing({
@@ -228,6 +251,7 @@ export function CollectionsPanel() {
                 {coll.requests.map((req) => (
                   <div
                     key={req.id}
+                    data-bod-request-id={req.id}
                     onClick={() => handleSelectRequest(req)}
                     onContextMenu={(e) => {
                       e.preventDefault()

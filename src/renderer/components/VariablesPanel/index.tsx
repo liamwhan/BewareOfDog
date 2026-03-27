@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useEnvironmentStore } from '../../stores/environmentStore'
 import { KeyValueEditor } from '../RequestBuilder/KeyValueEditor'
 
 export function VariablesPanel() {
   const [showEnvEditor, setShowEnvEditor] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const {
     environments,
@@ -17,6 +18,21 @@ export function VariablesPanel() {
   } = useEnvironmentStore()
 
   const activeEnv = environments.find((e) => e.id === activeEnvironmentId)
+
+  useEffect(() => {
+    if (!activeEnv) {
+      setShowDeleteConfirm(false)
+    }
+  }, [activeEnv])
+
+  useEffect(() => {
+    if (!showDeleteConfirm) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowDeleteConfirm(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showDeleteConfirm])
 
   return (
     <div className="flex items-center gap-4 relative">
@@ -101,10 +117,8 @@ export function VariablesPanel() {
                   Import
                 </button>
                 <button
-                  onClick={() => {
-                    removeEnvironment(activeEnv.id)
-                    setShowEnvEditor(false)
-                  }}
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="text-xs text-red-400 hover:underline"
                 >
                   Delete
@@ -119,6 +133,51 @@ export function VariablesPanel() {
               addLabel="Add Variable"
               variableContext={{ envVars: activeEnv.variables, collectionVars: [] }}
             />
+          </div>
+        </>
+      )}
+
+      {showDeleteConfirm && activeEnv && (
+        <>
+          <div
+            className="fixed inset-0 z-[60] bg-black/50"
+            aria-hidden
+            onClick={() => setShowDeleteConfirm(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-env-title"
+            className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(420px,92vw)] rounded-lg border border-slate-600 bg-slate-800 p-4 shadow-xl"
+          >
+            <h2 id="delete-env-title" className="text-lg font-medium text-slate-100 mb-2">
+              Delete environment?
+            </h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Permanently delete{' '}
+              <span className="text-slate-200 font-medium">&quot;{activeEnv.name}&quot;</span>? This cannot be
+              undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 text-sm rounded border border-slate-600 text-slate-200 hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  removeEnvironment(activeEnv.id)
+                  setShowDeleteConfirm(false)
+                  setShowEnvEditor(false)
+                }}
+                className="px-3 py-1.5 text-sm rounded bg-red-600 text-white hover:bg-red-500"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </>
       )}

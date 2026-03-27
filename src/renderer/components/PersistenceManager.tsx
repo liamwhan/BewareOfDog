@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import type { WorkspaceData } from '../../shared/workspace'
-import { loadWorkspace, saveWorkspace } from '../lib/persistence'
+import type { LastSuccessfulResponseSnapshot, WorkspaceData } from '../../shared/workspace'
+import { loadWorkspace, saveWorkspace, truncateResponseBodyForWorkspace } from '../lib/persistence'
 import { useCollectionStore } from '../stores/collectionStore'
 import { useEnvironmentStore } from '../stores/environmentStore'
+import { useRequestStore } from '../stores/requestStore'
 
 const SAVE_DEBOUNCE_MS = 500
 
-function applyWorkspaceToStores(data: WorkspaceData) {
+function applyWorkspaceToStores(
+  data: WorkspaceData,
+  lastSuccessfulRef: { current: LastSuccessfulResponseSnapshot | null }
+) {
   useCollectionStore.getState().setCollections(data.collections)
   useCollectionStore.getState().selectRequest(data.selectedRequestId)
   useEnvironmentStore.getState().setEnvironments(data.environments)
@@ -15,12 +19,36 @@ function applyWorkspaceToStores(data: WorkspaceData) {
     const req = data.collections.flatMap((c) => c.requests).find((r) => r.id === data.selectedRequestId)
     if (req) useCollectionStore.getState().loadRequestIntoBuilder(req)
   }
+
+  lastSuccessfulRef.current = data.lastSuccessfulResponse ?? null
+
+  const snap = data.lastSuccessfulResponse
+  if (snap && snap.requestId === data.selectedRequestId) {
+    useRequestStore.getState().setResponse({
+      status: snap.status,
+      statusText: snap.statusText,
+      headers: snap.headers,
+      body: snap.body,
+      duration: snap.duration,
+      loading: false
+    })
+  } else {
+    useRequestStore.getState().setResponse({
+      status: 0,
+      statusText: '',
+      headers: {},
+      body: '',
+      duration: 0,
+      loading: false
+    })
+  }
 }
 
 export function PersistenceManager() {
   const initialized = useRef(false)
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const versionTokenRef = useRef<string | null>(null)
+  const lastSuccessfulResponseRef = useRef<LastSuccessfulResponseSnapshot | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saveConflict, setSaveConflict] = useState(false)
   const [lastSaveError, setLastSaveError] = useState<string | null>(null)
@@ -35,7 +63,7 @@ export function PersistenceManager() {
     }
     versionTokenRef.current = outcome.versionToken
     if (outcome.data) {
-      applyWorkspaceToStores(outcome.data)
+      applyWorkspaceToStores(outcome.data, lastSuccessfulResponseRef)
     }
   }, [])
 
@@ -58,7 +86,7 @@ export function PersistenceManager() {
       }
       versionTokenRef.current = outcome.versionToken
       if (outcome.data) {
-        applyWorkspaceToStores(outcome.data)
+        applyWorkspaceToStores(outcome.data, lastSuccessfulResponseRef)
       }
       initialized.current = true
     }
@@ -83,7 +111,8 @@ export function PersistenceManager() {
               collections: collState.collections,
               environments: envState.environments,
               activeEnvironmentId: envState.activeEnvironmentId,
-              selectedRequestId: collState.selectedRequestId
+              selectedRequestId: collState.selectedRequestId,
+              lastSuccessfulResponse: lastSuccessfulResponseRef.current
             },
             { ifVersionMatch: versionTokenRef.current }
           )
@@ -108,9 +137,27 @@ export function PersistenceManager() {
     const unsubColl = useCollectionStore.subscribe(scheduleSave)
     const unsubEnv = useEnvironmentStore.subscribe(scheduleSave)
 
+    const unsubReq = useRequestStore.subscribe((state, prev) => {
+      if (state.response === prev.response) return
+      const r = state.response
+      const selId = useCollectionStore.getState().selectedRequestId
+      if (!r.loading && r.status >= 200 && r.status < 300 && selId) {
+        lastSuccessfulResponseRef.current = {
+          requestId: selId,
+          status: r.status,
+          statusText: r.statusText,
+          headers: r.headers,
+          body: truncateResponseBodyForWorkspace(r.body),
+          duration: r.duration
+        }
+      }
+      scheduleSave()
+    })
+
     return () => {
       unsubColl()
       unsubEnv()
+      unsubReq()
       if (saveTimeout.current) clearTimeout(saveTimeout.current)
     }
   }, [])
