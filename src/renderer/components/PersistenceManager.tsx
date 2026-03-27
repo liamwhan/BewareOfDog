@@ -6,6 +6,8 @@ import { useEnvironmentStore } from '../stores/environmentStore'
 import { useRequestStore } from '../stores/requestStore'
 
 const SAVE_DEBOUNCE_MS = 500
+/** How often to reload workspace from S3/Git when a remote backend is active (not local file). */
+const REMOTE_WORKSPACE_POLL_MS = 120_000
 
 function applyWorkspaceToStores(
   data: WorkspaceData,
@@ -46,19 +48,29 @@ export function PersistenceManager() {
   const [saveConflict, setSaveConflict] = useState(false)
   const [lastSaveError, setLastSaveError] = useState<string | null>(null)
 
-  const pullRemote = useCallback(async () => {
-    setLoadError(null)
-    setSaveConflict(false)
-    const outcome = await loadWorkspace()
-    if (outcome.error) {
-      setLoadError(outcome.error)
-      return
-    }
-    versionTokenRef.current = outcome.versionToken
-    if (outcome.data) {
-      applyWorkspaceToStores(outcome.data, lastSuccessfulResponseRef)
-    }
-  }, [])
+  const pullRemote = useCallback(
+    async (opts?: { silent?: boolean; skipIfUnchanged?: boolean }) => {
+      const silent = opts?.silent ?? false
+      const skipIfUnchanged = opts?.skipIfUnchanged ?? false
+      if (!silent) {
+        setLoadError(null)
+        setSaveConflict(false)
+      }
+      const outcome = await loadWorkspace()
+      if (outcome.error) {
+        if (!silent) setLoadError(outcome.error)
+        return
+      }
+      if (skipIfUnchanged && outcome.versionToken === versionTokenRef.current) {
+        return
+      }
+      versionTokenRef.current = outcome.versionToken
+      if (outcome.data) {
+        applyWorkspaceToStores(outcome.data, lastSuccessfulResponseRef)
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     function onPullRequest() {
@@ -66,6 +78,26 @@ export function PersistenceManager() {
     }
     window.addEventListener('bewareofdog:workspace-pull', onPullRequest)
     return () => window.removeEventListener('bewareofdog:workspace-pull', onPullRequest)
+  }, [pullRemote])
+
+  useEffect(() => {
+    let cancelled = false
+    const id = setInterval(() => {
+      void (async () => {
+        if (cancelled || !initialized.current) return
+        try {
+          const settings = await window.electron.syncGetSettings()
+          if (settings.activeBackend === 'local') return
+          await pullRemote({ silent: true, skipIfUnchanged: true })
+        } catch {
+          /* ignore: offline or IPC hiccup; next tick retries */
+        }
+      })()
+    }, REMOTE_WORKSPACE_POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
   }, [pullRemote])
 
   useEffect(() => {
