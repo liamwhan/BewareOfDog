@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "bewareofdog",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "REST API Debugger",
   "author": "BewareOfDog contributors",
   "repository": {
