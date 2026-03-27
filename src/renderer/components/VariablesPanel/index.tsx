@@ -117,6 +117,7 @@ export function VariablesPanel() {
               keyPlaceholder="Variable name"
               valuePlaceholder="Value"
               addLabel="Add Variable"
+              variableContext={{ envVars: activeEnv.variables, collectionVars: [] }}
             />
           </div>
         </>

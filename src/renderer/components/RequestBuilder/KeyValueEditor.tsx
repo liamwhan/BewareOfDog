@@ -1,4 +1,8 @@
 import type { Variable } from '../../../shared/types'
+import {
+  InputWithVariableTooltips,
+  type VariableTooltipContext
+} from '../VariableFieldWithTooltips'
 
 interface KeyValueEditorProps {
   items: Variable[]
@@ -6,6 +10,8 @@ interface KeyValueEditorProps {
   keyPlaceholder?: string
   valuePlaceholder?: string
   addLabel?: string
+  /** When set, value cells show {{var}} highlights and native tooltips with fully resolved values. */
+  variableContext?: VariableTooltipContext
 }
 
 export function KeyValueEditor({
@@ -13,7 +19,8 @@ export function KeyValueEditor({
   onChange,
   keyPlaceholder = 'Key',
   valuePlaceholder = 'Value',
-  addLabel = 'Add'
+  addLabel = 'Add',
+  variableContext
 }: KeyValueEditorProps) {
   const update = (index: number, field: 'key' | 'value', value: string) => {
     const next = [...items]
@@ -40,13 +47,24 @@ export function KeyValueEditor({
             placeholder={keyPlaceholder}
             className="flex-1 px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 placeholder-slate-500"
           />
-          <input
-            type="text"
-            value={item.value}
-            onChange={(e) => update(i, 'value', e.target.value)}
-            placeholder={valuePlaceholder}
-            className="flex-1 px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 placeholder-slate-500"
-          />
+          {variableContext ? (
+            <InputWithVariableTooltips
+              value={item.value}
+              onChange={(v) => update(i, 'value', v)}
+              variableContext={variableContext}
+              placeholder={valuePlaceholder}
+              className="flex-1 min-w-0"
+              inputClassName="px-2 py-1.5"
+            />
+          ) : (
+            <input
+              type="text"
+              value={item.value}
+              onChange={(e) => update(i, 'value', e.target.value)}
+              placeholder={valuePlaceholder}
+              className="flex-1 px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 placeholder-slate-500"
+            />
+          )}
           <button
             type="button"
             onClick={() => remove(i)}

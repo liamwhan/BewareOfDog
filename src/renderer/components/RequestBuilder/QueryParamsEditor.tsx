@@ -1,4 +1,8 @@
 import type { Variable } from '../../../shared/types'
+import {
+  InputWithVariableTooltips,
+  type VariableTooltipContext
+} from '../VariableFieldWithTooltips'
 
 export interface QueryParam extends Variable {
   enabled: boolean
@@ -7,9 +11,10 @@ export interface QueryParam extends Variable {
 interface QueryParamsEditorProps {
   params: QueryParam[]
   onChange: (params: QueryParam[]) => void
+  variableContext?: VariableTooltipContext
 }
 
-export function QueryParamsEditor({ params, onChange }: QueryParamsEditorProps) {
+export function QueryParamsEditor({ params, onChange, variableContext }: QueryParamsEditorProps) {
   const update = (index: number, field: 'key' | 'value' | 'enabled', value: string | boolean) => {
     const next = [...params]
     next[index] = { ...next[index], [field]: value }
@@ -41,13 +46,24 @@ export function QueryParamsEditor({ params, onChange }: QueryParamsEditorProps) 
             placeholder="Key"
             className="flex-1 px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 placeholder-slate-500"
           />
-          <input
-            type="text"
-            value={item.value}
-            onChange={(e) => update(i, 'value', e.target.value)}
-            placeholder="Value"
-            className="flex-1 px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 placeholder-slate-500"
-          />
+          {variableContext ? (
+            <InputWithVariableTooltips
+              value={item.value}
+              onChange={(v) => update(i, 'value', v)}
+              variableContext={variableContext}
+              placeholder="Value"
+              className="flex-1 min-w-0"
+              inputClassName="px-2 py-1.5"
+            />
+          ) : (
+            <input
+              type="text"
+              value={item.value}
+              onChange={(e) => update(i, 'value', e.target.value)}
+              placeholder="Value"
+              className="flex-1 px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 placeholder-slate-500"
+            />
+          )}
           <button
             type="button"
             onClick={() => remove(i)}

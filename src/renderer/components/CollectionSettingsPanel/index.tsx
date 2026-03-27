@@ -1,4 +1,5 @@
 import { useCollectionStore } from '../../stores/collectionStore'
+import { useEnvironmentStore } from '../../stores/environmentStore'
 import { AuthEditor } from '../AuthEditor'
 import { KeyValueEditor } from '../RequestBuilder/KeyValueEditor'
 
@@ -12,6 +13,12 @@ export function CollectionSettingsPanel({ widthPx = DEFAULT_WIDTH_PX }: { widthP
   if (selectedIndex === null || !collections[selectedIndex]) return null
 
   const collection = collections[selectedIndex]
+
+  const envVars = useEnvironmentStore((s) => {
+    const env = s.environments.find((e) => e.id === s.activeEnvironmentId)
+    return env?.variables ?? []
+  })
+  const variableContext = { envVars, collectionVars: collection.variables }
 
   return (
     <div
@@ -36,6 +43,7 @@ export function CollectionSettingsPanel({ widthPx = DEFAULT_WIDTH_PX }: { widthP
             mode="collection"
             value={collection.auth}
             onChange={(auth) => updateCollection(selectedIndex, { auth })}
+            variableContext={variableContext}
           />
         </div>
 
@@ -56,6 +64,7 @@ export function CollectionSettingsPanel({ widthPx = DEFAULT_WIDTH_PX }: { widthP
             keyPlaceholder="Variable name"
             valuePlaceholder="Value"
             addLabel="Add variable"
+            variableContext={variableContext}
           />
         </div>
       </div>

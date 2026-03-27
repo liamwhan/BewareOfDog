@@ -1,15 +1,18 @@
 import type { HttpAuthConfig, HttpAuthType, RequestAuth } from '../../shared/types'
+import { InputWithVariableTooltips, type VariableTooltipContext } from './VariableFieldWithTooltips'
 
 type Props =
   | {
       mode: 'collection'
       value: HttpAuthConfig
       onChange: (next: HttpAuthConfig) => void
+      variableContext?: VariableTooltipContext
     }
   | {
       mode: 'request'
       value: RequestAuth
       onChange: (next: RequestAuth) => void
+      variableContext?: VariableTooltipContext
     }
 
 const AUTH_TYPES: { value: HttpAuthType; label: string }[] = [
@@ -73,14 +76,26 @@ export function AuthEditor(props: Props) {
           {type === 'bearer' && (
             <div>
               <label className="block text-slate-400 mb-1">Token</label>
-              <input
-                type="text"
-                value={bearerToken}
-                onChange={(e) => patch({ bearerToken: e.target.value })}
-                placeholder="{{accessToken}} or raw token"
-                autoComplete="off"
-                className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded font-mono text-xs text-slate-100 placeholder-slate-500"
-              />
+              {props.variableContext ? (
+                <InputWithVariableTooltips
+                  value={bearerToken}
+                  onChange={(v) => patch({ bearerToken: v })}
+                  variableContext={props.variableContext}
+                  placeholder="{{accessToken}} or raw token"
+                  className="w-full font-mono text-xs"
+                  inputClassName="px-2 py-1.5"
+                  autoComplete="off"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={bearerToken}
+                  onChange={(e) => patch({ bearerToken: e.target.value })}
+                  placeholder="{{accessToken}} or raw token"
+                  autoComplete="off"
+                  className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded font-mono text-xs text-slate-100 placeholder-slate-500"
+                />
+              )}
               <p className="text-slate-500 text-xs mt-1">
                 Sent as <code className="bg-slate-800 px-1 rounded">Authorization: Bearer …</code>
               </p>
@@ -91,14 +106,26 @@ export function AuthEditor(props: Props) {
             <div className="space-y-2">
               <div>
                 <label className="block text-slate-400 mb-1">Username</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => patch({ username: e.target.value })}
-                  placeholder="{{apiUser}}"
-                  autoComplete="off"
-                  className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded font-mono text-xs"
-                />
+                {props.variableContext ? (
+                  <InputWithVariableTooltips
+                    value={username}
+                    onChange={(v) => patch({ username: v })}
+                    variableContext={props.variableContext}
+                    placeholder="{{apiUser}}"
+                    className="w-full font-mono text-xs"
+                    inputClassName="px-2 py-1.5"
+                    autoComplete="off"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => patch({ username: e.target.value })}
+                    placeholder="{{apiUser}}"
+                    autoComplete="off"
+                    className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded font-mono text-xs"
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-slate-400 mb-1">Password</label>
