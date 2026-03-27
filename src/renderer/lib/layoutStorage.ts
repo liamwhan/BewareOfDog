@@ -3,6 +3,8 @@ const STORAGE_KEY = 'bewareofdog.layout.v1'
 export interface LayoutState {
   leftWidth: number
   rightWidth: number
+  /** Height (px) of the request builder stack above the response panel. */
+  requestPanelHeight: number
 }
 
 export function loadLayout(): Partial<LayoutState> {
@@ -14,7 +16,9 @@ export function loadLayout(): Partial<LayoutState> {
     const o = parsed as Record<string, unknown>
     const leftWidth = typeof o.leftWidth === 'number' ? o.leftWidth : undefined
     const rightWidth = typeof o.rightWidth === 'number' ? o.rightWidth : undefined
-    return { leftWidth, rightWidth }
+    const requestPanelHeight =
+      typeof o.requestPanelHeight === 'number' ? o.requestPanelHeight : undefined
+    return { leftWidth, rightWidth, requestPanelHeight }
   } catch {
     return {}
   }

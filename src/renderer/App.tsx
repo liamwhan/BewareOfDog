@@ -3,6 +3,7 @@ import { RequestBuilder } from './components/RequestBuilder'
 import { ResponseView } from './components/ResponseView'
 import { CollectionsPanel } from './components/CollectionsPanel'
 import { CollectionSettingsPanel } from './components/CollectionSettingsPanel'
+import { HorizontalResizeHandle } from './components/HorizontalResizeHandle'
 import { VerticalResizeHandle } from './components/VerticalResizeHandle'
 import { VariablesPanel } from './components/VariablesPanel'
 import { PersistenceManager } from './components/PersistenceManager'
@@ -19,12 +20,28 @@ const RIGHT_MIN = 220
 const RIGHT_MAX = 560
 const RIGHT_DEFAULT = 320
 
+/** Height of HorizontalResizeHandle (must match `h-3` in Tailwind). */
+const MAIN_SPLIT_HANDLE_PX = 12
+const MAIN_SPLIT_MIN_TOP = 120
+const MAIN_SPLIT_MIN_BOTTOM = 120
+const MAIN_SPLIT_DEFAULT = 320
+
 function clampLeft(w: number): number {
   return Math.min(LEFT_MAX, Math.max(LEFT_MIN, Math.round(w)))
 }
 
 function clampRight(w: number): number {
   return Math.min(RIGHT_MAX, Math.max(RIGHT_MIN, Math.round(w)))
+}
+
+function clampRequestPanelHeight(h: number, sectionEl: HTMLElement | null): number {
+  const rounded = Math.round(h)
+  if (!sectionEl) return Math.max(MAIN_SPLIT_MIN_TOP, rounded)
+  const total = sectionEl.clientHeight - MAIN_SPLIT_HANDLE_PX
+  if (total <= MAIN_SPLIT_MIN_TOP + MAIN_SPLIT_MIN_BOTTOM) {
+    return MAIN_SPLIT_MIN_TOP
+  }
+  return Math.min(Math.max(MAIN_SPLIT_MIN_TOP, rounded), total - MAIN_SPLIT_MIN_BOTTOM)
 }
 
 export default function App() {
@@ -44,6 +61,13 @@ export default function App() {
     const s = loadLayout()
     return clampRight(typeof s.rightWidth === 'number' ? s.rightWidth : RIGHT_DEFAULT)
   })
+  const [requestPanelHeight, setRequestPanelHeight] = useState(() => {
+    const s = loadLayout()
+    const v =
+      typeof s.requestPanelHeight === 'number' ? s.requestPanelHeight : MAIN_SPLIT_DEFAULT
+    return Math.round(v)
+  })
+  const mainSplitSectionRef = useRef<HTMLElement>(null)
   const theme = useThemeStore((s) => s.theme)
   const toggleTheme = useThemeStore((s) => s.toggleTheme)
   const rightPanelOpen = useCollectionStore((s) => s.selectedCollectionSettingsIndex !== null)
@@ -54,6 +78,12 @@ export default function App() {
 
   const onResizeRight = useCallback((deltaPx: number) => {
     setRightWidth((w) => Math.min(RIGHT_MAX, Math.max(RIGHT_MIN, w - deltaPx)))
+  }, [])
+
+  const onResizeMainSplit = useCallback((deltaY: number) => {
+    setRequestPanelHeight((prev) =>
+      clampRequestPanelHeight(prev + deltaY, mainSplitSectionRef.current)
+    )
   }, [])
 
   useEffect(() => {
@@ -161,11 +191,21 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const el = mainSplitSectionRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      setRequestPanelHeight((h) => clampRequestPanelHeight(h, el))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
     const t = window.setTimeout(() => {
-      saveLayout({ leftWidth, rightWidth })
+      saveLayout({ leftWidth, rightWidth, requestPanelHeight })
     }, 300)
     return () => window.clearTimeout(t)
-  }, [leftWidth, rightWidth])
+  }, [leftWidth, rightWidth, requestPanelHeight])
 
   return (
     <>
@@ -241,11 +281,21 @@ export default function App() {
           <CollectionsPanel />
         </aside>
         <VerticalResizeHandle onResize={onResizeLeft} label="Resize collections sidebar" />
-        <section className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <div className="p-4 border-b border-slate-300 dark:border-slate-700 flex-1 min-h-0 flex flex-col">
+        <section
+          ref={mainSplitSectionRef}
+          className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0"
+        >
+          <div
+            className="p-4 min-h-0 flex flex-col overflow-hidden shrink-0"
+            style={{ height: requestPanelHeight }}
+          >
             <RequestBuilder />
           </div>
-          <div className="flex-1 p-4 overflow-auto min-h-0 flex flex-col border-t border-slate-300 dark:border-slate-700">
+          <HorizontalResizeHandle
+            onResize={onResizeMainSplit}
+            label="Resize request and response panels"
+          />
+          <div className="flex-1 min-h-0 p-4 overflow-auto flex flex-col">
             <ResponseView />
           </div>
         </section>
