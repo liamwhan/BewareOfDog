@@ -6,9 +6,11 @@ import { CollectionSettingsPanel } from './components/CollectionSettingsPanel'
 import { VerticalResizeHandle } from './components/VerticalResizeHandle'
 import { VariablesPanel } from './components/VariablesPanel'
 import { PersistenceManager } from './components/PersistenceManager'
+import { HttpConsolePanel } from './components/HttpConsolePanel'
 import { WorkspaceSyncModal } from './components/WorkspaceSyncModal'
 import { useThemeStore } from './stores/themeStore'
 import { useCollectionStore } from './stores/collectionStore'
+import { loadLayout, saveLayout } from './lib/layoutStorage'
 
 const LEFT_MIN = 160
 const LEFT_MAX = 560
@@ -17,10 +19,24 @@ const RIGHT_MIN = 220
 const RIGHT_MAX = 560
 const RIGHT_DEFAULT = 320
 
+function clampLeft(w: number): number {
+  return Math.min(LEFT_MAX, Math.max(LEFT_MIN, Math.round(w)))
+}
+
+function clampRight(w: number): number {
+  return Math.min(RIGHT_MAX, Math.max(RIGHT_MIN, Math.round(w)))
+}
+
 export default function App() {
   const [syncOpen, setSyncOpen] = useState(false)
-  const [leftWidth, setLeftWidth] = useState(LEFT_DEFAULT)
-  const [rightWidth, setRightWidth] = useState(RIGHT_DEFAULT)
+  const [leftWidth, setLeftWidth] = useState(() => {
+    const s = loadLayout()
+    return clampLeft(typeof s.leftWidth === 'number' ? s.leftWidth : LEFT_DEFAULT)
+  })
+  const [rightWidth, setRightWidth] = useState(() => {
+    const s = loadLayout()
+    return clampRight(typeof s.rightWidth === 'number' ? s.rightWidth : RIGHT_DEFAULT)
+  })
   const theme = useThemeStore((s) => s.theme)
   const toggleTheme = useThemeStore((s) => s.toggleTheme)
   const rightPanelOpen = useCollectionStore((s) => s.selectedCollectionSettingsIndex !== null)
@@ -37,11 +53,18 @@ export default function App() {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
 
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      saveLayout({ leftWidth, rightWidth })
+    }, 300)
+    return () => window.clearTimeout(t)
+  }, [leftWidth, rightWidth])
+
   return (
     <>
       <PersistenceManager />
       <WorkspaceSyncModal open={syncOpen} onClose={() => setSyncOpen(false)} />
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col">
+      <div className="h-screen min-h-0 flex flex-col overflow-hidden bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
       <header className="border-b border-slate-300 dark:border-slate-700 px-4 py-2 flex items-center gap-4">
         <img src="./bod.png" alt="BewareOfDog" className="w-8 h-8 rounded-full shrink-0" />
         <h1 className="text-lg font-semibold">BewareOfDog</h1>
@@ -86,6 +109,7 @@ export default function App() {
           </>
         )}
       </main>
+      <HttpConsolePanel />
     </div>
     </>
   )
