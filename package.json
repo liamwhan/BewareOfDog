@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "bewareofdog",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "REST API Debugger",
   "author": "BewareOfDog contributors",
   "repository": {
@@ -52,6 +52,7 @@
       "public/bod.png"
     ],
     "win": {
+      "artifactName": "${productName}.Setup.${version}.${ext}",
       "target": [
         {
           "target": "nsis",
