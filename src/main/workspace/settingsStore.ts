@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { app } from 'electron'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -90,7 +91,7 @@ export async function setActiveBackend(params: {
 }
 
 function newId(): string {
-  return crypto.randomUUID()
+  return randomUUID()
 }
 
 export async function upsertS3Profile(

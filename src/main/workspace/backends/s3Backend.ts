@@ -13,15 +13,23 @@ function objectKey(prefix: string): string {
   return p ? `${p}/workspace.json` : 'workspace.json'
 }
 
+/** Pasted IAM keys often include spaces or a BOM; those break SigV4. */
+function normalizeKeyMaterial(s: string): string {
+  return s.trim().replace(/^\uFEFF/, '')
+}
+
 function clientFor(profile: S3ProfilePublic, secrets: S3ProfileSecrets): S3Client {
   const endpoint = profile.endpoint?.trim() || undefined
+  const accessKeyId = normalizeKeyMaterial(secrets.accessKeyId)
+  const secretAccessKey = normalizeKeyMaterial(secrets.secretAccessKey)
+  const session = secrets.sessionToken?.trim()
   return new S3Client({
-    region: profile.region,
+    region: profile.region.trim(),
     endpoint,
     credentials: {
-      accessKeyId: secrets.accessKeyId,
-      secretAccessKey: secrets.secretAccessKey,
-      sessionToken: secrets.sessionToken
+      accessKeyId,
+      secretAccessKey,
+      ...(session ? { sessionToken: session } : {})
     },
     forcePathStyle: profile.forcePathStyle === true
   })

@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { WorkspaceBackendKind, WorkspaceSyncSettingsDTO } from '../../shared/syncTypes'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type {
+  S3ProfilePublic,
+  WorkspaceBackendKind,
+  WorkspaceSyncSettingsDTO
+} from '../../shared/syncTypes'
 
 interface WorkspaceSyncModalProps {
   open: boolean
@@ -10,10 +14,16 @@ function requestWorkspacePull() {
   window.dispatchEvent(new CustomEvent('bewareofdog:workspace-pull'))
 }
 
+/** Explicit empty form; distinct from `null` (follow active S3 profile when backend is S3). */
+const S3_FORM_NEW = '__s3_form_new__' as const
+type S3FormFocusId = string | typeof S3_FORM_NEW | null
+
 export function WorkspaceSyncModal({ open, onClose }: WorkspaceSyncModalProps) {
   const [settings, setSettings] = useState<WorkspaceSyncSettingsDTO | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  /** When set to an id or `S3_FORM_NEW`, drives the S3 form; when null, follows active S3 profile (if any). */
+  const [s3FormFocusId, setS3FormFocusId] = useState<S3FormFocusId>(null)
 
   const refresh = useCallback(async () => {
     const s = await window.electron.syncGetSettings()
@@ -23,6 +33,20 @@ export function WorkspaceSyncModal({ open, onClose }: WorkspaceSyncModalProps) {
   useEffect(() => {
     if (open) void refresh()
   }, [open, refresh])
+
+  useEffect(() => {
+    if (!open) setS3FormFocusId(null)
+  }, [open])
+
+  const s3ProfileForForm = useMemo((): S3ProfilePublic | null => {
+    if (s3FormFocusId === S3_FORM_NEW) return null
+    if (!settings?.s3Profiles.length) return null
+    const id =
+      s3FormFocusId ??
+      (settings.activeBackend === 's3' ? settings.activeS3ProfileId : null)
+    if (!id) return null
+    return settings.s3Profiles.find((p) => p.id === id) ?? null
+  }, [settings, s3FormFocusId])
 
   if (!open) return null
 
@@ -58,6 +82,7 @@ export function WorkspaceSyncModal({ open, onClose }: WorkspaceSyncModalProps) {
 
   async function setS3Active(id: string | null) {
     if (!settings) return
+    setS3FormFocusId(null)
     setBusy(true)
     setMessage(null)
     try {
@@ -194,11 +219,33 @@ export function WorkspaceSyncModal({ open, onClose }: WorkspaceSyncModalProps) {
                   ))}
                 </select>
               )}
-              <S3ProfileForm busy={busy} setBusy={setBusy} setMessage={setMessage} onSaved={refresh} />
+              {settings.s3Profiles.length > 0 && (
+                <p className="text-xs text-slate-500 mb-2">
+                  {settings.activeBackend === 's3'
+                    ? 'The form below fills from the active profile. Use Edit on a row to load another profile without switching the active one.'
+                    : 'Load a profile into the form with Edit (below) to review or change settings.'}
+                </p>
+              )}
+              <S3ProfileForm
+                busy={busy}
+                setBusy={setBusy}
+                setMessage={setMessage}
+                onSaved={refresh}
+                profileToLoad={s3ProfileForForm}
+                onRequestNewProfile={() => setS3FormFocusId(S3_FORM_NEW)}
+              />
               <ul className="mt-2 space-y-1">
                 {settings.s3Profiles.map((p) => (
                   <li key={p.id} className="flex items-center gap-2 flex-wrap">
                     <span>{p.name}</span>
+                    <button
+                      type="button"
+                      className="text-xs text-sky-600 dark:text-sky-400"
+                      disabled={busy}
+                      onClick={() => setS3FormFocusId(p.id)}
+                    >
+                      Edit
+                    </button>
                     <button
                       type="button"
                       className="text-xs text-sky-600 dark:text-sky-400"
@@ -291,16 +338,33 @@ export function WorkspaceSyncModal({ open, onClose }: WorkspaceSyncModalProps) {
   )
 }
 
+function emptyS3Form() {
+  return {
+    name: '',
+    endpoint: '',
+    region: 'us-east-1',
+    bucket: '',
+    prefix: '',
+    forcePathStyle: false,
+    accessKeyId: '',
+    secretAccessKey: ''
+  }
+}
+
 function S3ProfileForm({
   busy,
   setBusy,
   setMessage,
-  onSaved
+  onSaved,
+  profileToLoad,
+  onRequestNewProfile
 }: {
   busy: boolean
   setBusy: (v: boolean) => void
   setMessage: (s: string | null) => void
   onSaved: () => Promise<void>
+  profileToLoad: S3ProfilePublic | null
+  onRequestNewProfile: () => void
 }) {
   const [name, setName] = useState('')
   const [endpoint, setEndpoint] = useState('')
@@ -311,32 +375,89 @@ function S3ProfileForm({
   const [accessKeyId, setAccessKeyId] = useState('')
   const [secretAccessKey, setSecretAccessKey] = useState('')
 
+  useEffect(() => {
+    if (!profileToLoad) {
+      const z = emptyS3Form()
+      setName(z.name)
+      setEndpoint(z.endpoint)
+      setRegion(z.region)
+      setBucket(z.bucket)
+      setPrefix(z.prefix)
+      setForcePathStyle(z.forcePathStyle)
+      setAccessKeyId(z.accessKeyId)
+      setSecretAccessKey(z.secretAccessKey)
+      return
+    }
+    setName(profileToLoad.name)
+    setEndpoint(profileToLoad.endpoint)
+    setRegion(profileToLoad.region)
+    setBucket(profileToLoad.bucket)
+    setPrefix(profileToLoad.prefix)
+    setForcePathStyle(profileToLoad.forcePathStyle)
+    setAccessKeyId('')
+    setSecretAccessKey('')
+  }, [profileToLoad?.id])
+
+  const editingId = profileToLoad?.id ?? null
+  const isEditing = editingId !== null
+
   return (
     <form
       className="grid gap-2 border border-slate-200 dark:border-slate-600 rounded p-3"
       onSubmit={async (e) => {
         e.preventDefault()
-        if (!name.trim() || !region.trim() || !bucket.trim() || !accessKeyId || !secretAccessKey) {
-          setMessage('Fill name, region, bucket, and keys.')
+        const ak = accessKeyId.trim().replace(/^\uFEFF/, '')
+        const sk = secretAccessKey.trim().replace(/^\uFEFF/, '')
+        const hasBothKeys = ak.length > 0 && sk.length > 0
+        const hasNoKeys = ak.length === 0 && sk.length === 0
+        const hasPartial = !hasBothKeys && !hasNoKeys
+
+        if (!name.trim() || !region.trim() || !bucket.trim()) {
+          setMessage('Fill name, region, and bucket.')
+          return
+        }
+        if (hasPartial) {
+          setMessage('Provide both access key and secret, or leave both blank to keep stored credentials.')
+          return
+        }
+        if (!isEditing && !hasBothKeys) {
+          setMessage('Fill name, region, bucket, and keys for a new profile.')
           return
         }
         setBusy(true)
         setMessage(null)
         try {
           await window.electron.syncUpsertS3Profile({
+            ...(isEditing ? { id: editingId } : {}),
             name: name.trim(),
             endpoint: endpoint.trim(),
             region: region.trim(),
             bucket: bucket.trim(),
             prefix: prefix.trim(),
             forcePathStyle,
-            secrets: { accessKeyId, secretAccessKey }
+            ...(hasBothKeys
+              ? {
+                  secrets: {
+                    accessKeyId: ak,
+                    secretAccessKey: sk
+                  }
+                }
+              : {})
           })
-          setName('')
+          await onSaved()
+          setMessage(isEditing ? 'S3 profile updated.' : 'S3 profile saved.')
           setAccessKeyId('')
           setSecretAccessKey('')
-          await onSaved()
-          setMessage('S3 profile saved.')
+          if (!isEditing) {
+            onRequestNewProfile()
+            const z = emptyS3Form()
+            setName(z.name)
+            setEndpoint(z.endpoint)
+            setRegion(z.region)
+            setBucket(z.bucket)
+            setPrefix(z.prefix)
+            setForcePathStyle(z.forcePathStyle)
+          }
         } catch (err) {
           setMessage(err instanceof Error ? err.message : String(err))
         } finally {
@@ -393,13 +514,43 @@ function S3ProfileForm({
         onChange={(e) => setSecretAccessKey(e.target.value)}
         autoComplete="off"
       />
-      <button
-        type="submit"
-        disabled={busy}
-        className="px-3 py-1.5 rounded bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 disabled:opacity-50"
-      >
-        Save S3 profile
-      </button>
+      {isEditing && (
+        <p className="text-xs text-slate-500">
+          Access key and secret are not shown after save. Leave both blank to keep the stored credentials, or enter new
+          ones to replace them.
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2 items-center">
+        <button
+          type="submit"
+          disabled={busy}
+          className="px-3 py-1.5 rounded bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 disabled:opacity-50"
+        >
+          {isEditing ? 'Update S3 profile' : 'Save S3 profile'}
+        </button>
+        {isEditing && (
+          <button
+            type="button"
+            disabled={busy}
+            className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 text-sm"
+            onClick={() => {
+              onRequestNewProfile()
+              const z = emptyS3Form()
+              setName(z.name)
+              setEndpoint(z.endpoint)
+              setRegion(z.region)
+              setBucket(z.bucket)
+              setPrefix(z.prefix)
+              setForcePathStyle(z.forcePathStyle)
+              setAccessKeyId(z.accessKeyId)
+              setSecretAccessKey(z.secretAccessKey)
+              setMessage(null)
+            }}
+          >
+            New profile instead
+          </button>
+        )}
+      </div>
     </form>
   )
 }
