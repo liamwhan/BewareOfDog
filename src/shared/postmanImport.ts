@@ -1,7 +1,7 @@
 import type { Collection, Request, Variable } from './types'
 import { defaultCollectionAuth, defaultRequestAuth } from './auth'
 
-export type CollectionImportSource = 'bod' | 'postman-v2.1'
+export type CollectionImportSource = 'bod' | 'postman-v2.1' | 'openapi-3'
 
 export interface CollectionImportResult {
   collection: Collection

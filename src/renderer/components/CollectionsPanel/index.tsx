@@ -1,14 +1,16 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useCollectionStore } from '../../stores/collectionStore'
 import type { Collection, Request } from '../../../shared/types'
+import { ImportCollectionModal } from './ImportCollectionModal'
 
 type ImportBanner =
   | null
   | {
       kind: 'success'
-      source: 'bod' | 'postman-v2.1'
+      source: 'bod' | 'postman-v2.1' | 'openapi-3'
       collectionName: string
       warnings: string[]
+      updated: boolean
     }
   | { kind: 'error'; message: string }
 
@@ -46,6 +48,7 @@ export function CollectionsPanel() {
     request?: Request
   } | null>(null)
   const [importBanner, setImportBanner] = useState<ImportBanner>(null)
+  const [importModalOpen, setImportModalOpen] = useState(false)
 
   useEffect(() => {
     if (editing) editInputRef.current?.focus()
@@ -97,22 +100,18 @@ export function CollectionsPanel() {
     loadRequestIntoBuilder(req)
   }
 
-  const handleImport = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json'
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
+  const handleImportJson = useCallback(
+    (text: string) => {
       try {
-        const text = await file.text()
-        const { warnings, source, collectionName } = importCollection(text)
+        const { warnings, source, collectionName, updated } = importCollection(text)
         setImportBanner({
           kind: 'success',
           source,
           collectionName,
-          warnings
+          warnings,
+          updated
         })
+        setImportModalOpen(false)
       } catch (err) {
         console.error(err)
         setImportBanner({
@@ -120,9 +119,9 @@ export function CollectionsPanel() {
           message: err instanceof Error ? err.message : String(err)
         })
       }
-    }
-    input.click()
-  }
+    },
+    [importCollection]
+  )
 
   const handleExport = (index: number) => {
     const json = exportCollection(index)
@@ -145,7 +144,8 @@ export function CollectionsPanel() {
           New Collection
         </button>
         <button
-          onClick={handleImport}
+          type="button"
+          onClick={() => setImportModalOpen(true)}
           className="px-2 py-1 text-sm text-emerald-400 hover:bg-slate-700 rounded"
         >
           Import
@@ -342,15 +342,28 @@ export function CollectionsPanel() {
         />
       )}
 
+      <ImportCollectionModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImportJson={handleImportJson}
+      />
+
       {importBanner && (
         <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] max-w-lg w-[90vw] text-sm rounded-lg border shadow-lg px-4 py-3 bg-emerald-50 dark:bg-emerald-950/90 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100">
           {importBanner.kind === 'error' && <p className="mb-1">{importBanner.message}</p>}
           {importBanner.kind === 'success' && (
             <>
               <p className="font-medium mb-1">
-                {importBanner.source === 'postman-v2.1'
-                  ? `Imported Postman collection “${importBanner.collectionName}”.`
-                  : `Imported collection “${importBanner.collectionName}”.`}
+                {(() => {
+                  const verb = importBanner.updated ? 'Updated' : 'Imported'
+                  const label =
+                    importBanner.source === 'postman-v2.1'
+                      ? 'Postman collection'
+                      : importBanner.source === 'openapi-3'
+                        ? 'OpenAPI collection'
+                        : 'collection'
+                  return `${verb} ${label} “${importBanner.collectionName}”.`
+                })()}
               </p>
               {importBanner.warnings.length > 0 && (
                 <div className="mt-2 space-y-1.5 text-emerald-900/90 dark:text-emerald-100/95">

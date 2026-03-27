@@ -3,6 +3,7 @@ import type { Collection, Request } from '../../shared/types'
 import {
   createEmptyCollection,
   createRequest,
+  mergeCollectionIntoExisting,
   parseCollectionImport,
   serializeCollection
 } from '../../shared/collection'
@@ -30,6 +31,7 @@ interface CollectionStore {
   loadRequestIntoBuilder: (request: Request) => void
   importCollection: (json: string) => Pick<CollectionImportResult, 'warnings' | 'source'> & {
     collectionName: string
+    updated: boolean
   }
   exportCollection: (index: number) => string
 }
@@ -160,8 +162,18 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
 
   importCollection: (json) => {
     const { collection, warnings, source } = parseCollectionImport(json)
+    const idx = get().collections.findIndex((c) => c.name === collection.name)
+    if (idx >= 0) {
+      const merged = mergeCollectionIntoExisting(get().collections[idx], collection)
+      set((s) => {
+        const next = [...s.collections]
+        next[idx] = merged
+        return { collections: next }
+      })
+      return { warnings, source, collectionName: collection.name, updated: true }
+    }
     set((s) => ({ collections: [...s.collections, collection] }))
-    return { warnings, source, collectionName: collection.name }
+    return { warnings, source, collectionName: collection.name, updated: false }
   },
 
   exportCollection: (index) => {
