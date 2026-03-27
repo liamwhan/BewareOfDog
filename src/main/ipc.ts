@@ -4,6 +4,7 @@ import { existsSync } from 'fs'
 import { registerWorkspaceSyncIpc } from './workspace/syncIpc'
 import { routeWorkspaceLoad, routeWorkspaceSave } from './workspace/router'
 import type { WorkspaceLoadResult, WorkspaceSaveResult } from '../shared/syncTypes'
+import { normalizeHttpRequestUrl } from '../shared/httpUrl'
 
 export interface HttpRequestPayload {
   method: string
@@ -25,11 +26,24 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('http:request', async (_event, payload: HttpRequestPayload): Promise<HttpResponse> => {
     const start = Date.now()
+    const normalized = normalizeHttpRequestUrl(payload.url)
+    if (!normalized.ok) {
+      const duration = Date.now() - start
+      return {
+        status: 0,
+        statusText: 'Invalid URL',
+        headers: {},
+        body: JSON.stringify({ error: normalized.message }, null, 2),
+        duration
+      }
+    }
+    const requestUrl = normalized.url
+
     try {
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 30000)
 
-      const response = await fetch(payload.url, {
+      const response = await fetch(requestUrl, {
         method: payload.method,
         headers: payload.headers ?? {},
         body: payload.body ?? undefined,
@@ -62,11 +76,17 @@ export function registerIpcHandlers() {
     } catch (err) {
       const duration = Date.now() - start
       const message = err instanceof Error ? err.message : String(err)
+      const detail =
+        err instanceof Error && 'cause' in err && err.cause != null ? String(err.cause) : undefined
       return {
         status: 0,
         statusText: 'Error',
         headers: {},
-        body: JSON.stringify({ error: message }, null, 2),
+        body: JSON.stringify(
+          { error: message, ...(detail ? { cause: detail } : {}) },
+          null,
+          2
+        ),
         duration
       }
     }
