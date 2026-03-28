@@ -1,6 +1,6 @@
 # Beware Of Dog
 
-**REST API debugging that stays yours.** A focused desktop client for building requests, inspecting responses, and sharing API workspaces—without renting team sync from a gatekeeper.
+**REST API debugging that stays yours.** A desktop client for building requests, inspecting responses, and sharing workspaces—without a vendor account or “team sync” rent.
 
 ![Beware of Dog Logo](public/bod.png)
 
@@ -8,65 +8,46 @@
 
 ## Why BewareOfDog?
 
-You already know how to call HTTP APIs. What you need is a **fast, local-first tool** that respects collections and environments—and when your team needs a shared source of truth, **you choose where it lives**. No BewareOfDog account. No surprise “team tier” invoices. Your credentials stay on your machine (encrypted with the OS where supported), and your data sits in **your** S3-compatible bucket or **your** Git remote.
-
-Built for people who liked the *simple* parts of the incumbent tools and resented paying enterprise rent for them.
+**Local-first**, fast, and honest about where data lives. When you need a shared workspace, **you** pick the backend: nothing is stored on our servers. Credentials stay on your machine (OS keychain where supported); sync goes to **your** S3-compatible bucket or **your** Git remote—no BewareOfDog login, no surprise invoices.
 
 ## Features
 
-- **Request builder**: Method, URL, route/query params, headers, JSON body with lightweight syntax coloring, and per-request auth. Invalid or unresolved URLs are caught before the request runs.
-- **Variables**: Environment and collection variables with `{{var}}` interpolation; hover supported fields to see **resolved values** (with scope when it helps).
-- **Response view**: Status, timing, headers, and body with JSON-aware coloring (keys vs values). **Copy** the response body in one click.
-- **HTTP console**: A docked log of recent requests and responses—handy when you’re iterating fast.
-- **Collections**: Full CRUD; import **Postman Collection v2.1**, **OpenAPI 3.x** (JSON), or native JSON; export as portable BewareOfDog JSON.
-- **Environments**: Named variable sets (Dev, Staging, Prod, …)
-- **Workspace sync (BYO)**: Local file, **S3-compatible** storage, or **Git**—pick the backend in *Workspace sync* (see below)
-- **Persistence**: Main window size and position, plus left/right panel widths, are remembered locally between sessions.
-- **Updates** (packaged installs): Background check against **GitHub Releases**; prompts to restart when a new installer is ready (via `electron-updater`).
-- **Keyboard shortcut**: Ctrl+Enter to send
-- **Themes**: Dark / light
-- **Post-request scripts**: Sandboxed JavaScript with a `bod` API for chaining tokens, assertions, and variable updates—editor includes syntax coloring, Tab inserts spaces, and **autocomplete for `bod`** (request, response, environment, collection variables).
+- **Request builder** — Method, URL, route/query params, headers, JSON body with syntax coloring, per-request auth; bad URLs are caught before send.
+- **Variables** — Environment and collection variables with `{{var}}`; hover to see resolved values.
+- **Response view** — Status, timing, headers, body with JSON-aware coloring; one-click copy.
+- **HTTP console** — Recent requests/responses while you iterate.
+- **Collections** — CRUD; import **Postman v2.1**, **OpenAPI 3.x** (JSON), or native JSON; export as portable BewareOfDog JSON.
+- **Environments** — Named variable sets (e.g. Dev / Staging / Prod).
+- **Workspace sync (BYO)** — Local file, **S3-compatible** storage, or **Git** (header → *Workspace sync*).
+- **Layout** — Window and panel sizes remembered between sessions.
+- **Updates** — Packaged builds check **GitHub Releases** in the background and prompt when a new version is ready (**electron-updater**).
+- **Ctrl+Enter** to send · **Dark / light** themes
+- **Post-request scripts** — Sandboxed JS with a `bod` API (tokens, assertions, variable updates); Tab inserts spaces; autocomplete for `bod`.
 
-## Workspace sync—your cloud, your repo
+## Workspace sync
 
-Stop exporting ZIPs to Slack. BewareOfDog persists your whole workspace (collections, environments, **which request is selected**, and the **last successful HTTP response** for that request when applicable) as a single JSON document and lets you **back it with infrastructure you already pay for**:
+One JSON document holds collections, environments, selected request, and last successful response metadata. You can back it with infrastructure you already use:
 
 | Mode | Best for |
 |------|----------|
-| **Local file** | Solo work, air-gapped, or default until you wire a remote |
-| **S3-compatible** | AWS S3, Cloudflare R2, MinIO, etc.—one object (`…/workspace.json`), **conditional writes** so two people don’t silently overwrite each other |
-| **Git** | Teams that already live in GitHub/GitLab—history, review, and branch workflows you already trust |
+| **Local file** | Default, solo, or air-gapped |
+| **S3-compatible** | AWS S3, R2, MinIO, etc.—single object path, conditional writes to avoid blind overwrites |
+| **Git** | Teams already on GitHub/GitLab—familiar history and review |
 
-**What you get**
+Conflicts are explicit (S3 ETags; Git pull/rebase before push). Secrets use Electron **safe storage** where the OS supports it. *Git mode needs [Git](https://git-scm.com/) on `PATH`; HTTPS + PAT is the usual setup.*
 
-- **No vendor-hosted database** and no BewareOfDog login—just connectors to *your* storage.
-- **Explicit conflict handling** when the remote changed (S3 ETags; Git pull/rebase before push).
-- **Secrets** stored with Electron **safe storage** where the OS supports it.
-
-Open **Workspace sync** from the header to add profiles, test connectivity, switch the active backend, and pull the latest workspace from remote.
-
-*Git mode expects [Git](https://git-scm.com/) on your `PATH`. HTTPS + a personal access token is the smoothest first setup.*
-
-## Quick Start
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Releases (installers)
+## Installers
 
-Pre-built installers are published on the repository’s **Releases** tab for each tagged version. Choose the asset for your platform:
+Releases are on the repo **Releases** tab: Windows (NSIS `.exe`), macOS (`.dmg`), Linux (`.AppImage`; `chmod +x` if needed). macOS builds are not notarized—you may need **Open** from the context menu on first launch.
 
-| Platform | File |
-|----------|------|
-| Windows | NSIS installer (`.exe`) |
-| macOS | Disk image (`.dmg`) |
-| Linux | AppImage (`.AppImage`; `chmod +x` if your browser strips execute permission) |
-
-macOS builds are not notarized; you may need to use **Open** from the context menu the first time you launch the app.
-
-## Collection Format
+## Collection format (excerpt)
 
 ```json
 {
@@ -90,19 +71,15 @@ macOS builds are not notarized; you may need to use **Open** from the context me
 }
 ```
 
-## Import formats
+## Import & export
 
-**OpenAPI 3.x.** Use **Import** in the collections panel with an OpenAPI **JSON** document (paste or file). Operations become requests; servers and path/query parameters are mapped where possible so you can send traffic quickly from a spec you already trust.
+- **OpenAPI 3.x (JSON)** — Import from the collections panel; operations become requests where mapping allows.
+- **Postman Collection v2.1** — Export from Postman, import here; common auth, params, and body shapes transfer; a short summary appears if something needed manual follow-up.
+- **On disk** — Save/export uses the same open JSON shape as above—good for Git and diff-friendly backups.
 
-**You can bring your existing Postman work.** BewareOfDog imports **Postman Collection v2.1**—export your collection from Postman, use **Import** in the collections panel, and you’re back to a full request list without rebuilding endpoints from scratch. Names, variables, methods, URLs, query and path params, headers, and common body types (raw, urlencoded, typical form and GraphQL shapes) come across; Bearer, Basic, and API-key-in-header auth map to headers so you stay productive on day one.
+Postman `pm.*` pre-request/test scripts are not migrated; use BewareOfDog’s `bod` post-request scripts instead. Exotic auth, multipart uploads, or query-string API keys may need a quick tweak after import.
 
-**Your collections, your format on disk.** For save, backup, and workspace sync, BewareOfDog uses the open **BewareOfDog JSON** shape shown under [Collection Format](#collection-format)—readable, diff-friendly, and a natural fit for Git and S3-backed workspaces. That’s the format **Export** uses: portable, yours, and aligned with how the app stores data—not a closed vendor bundle.
-
-**After a Postman import**, the app shows a short, dismissible summary if anything needed a human pass (for example Postman-only scripts, saved response examples, or advanced auth). Most API surfaces import cleanly; the summary is there so nothing surprises you later.
-
-**Edge cases you might adjust by hand** (also summarized after import when they apply): Postman pre-request and test scripts (`pm.*`) aren’t carried over—BewareOfDog uses its own sandboxed `bod` post-request scripts instead. Saved example responses, protocol/proxy/certificate extras, OAuth2 and similar auth helpers, multipart file uploads, oddball header encodings, and API keys meant for the query string may need a quick tweak in the builder.
-
-## Environment Format
+## Environment format
 
 ```json
 {
@@ -113,15 +90,14 @@ macOS builds are not notarized; you may need to use **Open** from the context me
 }
 ```
 
-## Post-request Scripts
+## Post-request scripts
 
-Scripts run in a sandboxed context with access to the `bod` object. The script editor highlights JavaScript, inserts four spaces on Tab (so focus doesn’t jump away), and suggests members after you type `bod.` (for example `bod.response.json()`).
+Sandboxed JavaScript with a `bod` object (syntax coloring, Tab → spaces, autocomplete after `bod.`).
 
 ```javascript
-// bod.request - { method, url, headers }
-// bod.response - { status, statusText, headers, body, json(), text() }
-// bod.environment.get(key) / bod.environment.set(key, value)
-// bod.collectionVariables.get(key) / bod.collectionVariables.set(key, value)
+// bod.request — { method, url, headers }
+// bod.response — { status, statusText, headers, body, json(), text() }
+// bod.environment / bod.collectionVariables — get(key), set(key, value)
 
 const json = bod.response.json();
 if (json.token) {
@@ -129,9 +105,9 @@ if (json.token) {
 }
 ```
 
-## S3 tip (least privilege)
+## S3 IAM (least privilege)
 
-For a dedicated prefix, narrow IAM to `s3:GetObject` and `s3:PutObject` on `arn:...:your-bucket/your-prefix/*` (plus `s3:ListBucket` with a prefix condition if your workflow needs listing). Adjust for your org’s standards.
+For one prefix, scope `s3:GetObject` / `s3:PutObject` to `arn:...:bucket/prefix/*` (and `s3:ListBucket` with a prefix condition if you need listing).
 
 ## Build
 
@@ -139,36 +115,16 @@ For a dedicated prefix, narrow IAM to `s3:GetObject` and `s3:PutObject` on `arn:
 npm run build
 ```
 
-### Desktop packages (local)
+**Installers locally:** `npm run dist` (build + icons → `release/`, NSIS / DMG / AppImage). `npm run dist:dir` for an unpacked app only.
 
-```bash
-npm run dist
-```
+**Auto-update:** Packaged apps use **electron-updater** against **GitHub Releases** (see workflow). Checks run in the background; **Check for updates** in the header is a manual check. *Not available in `npm run dev`.*
 
-This runs `electron-vite build`, regenerates icons from `public/bod.png` (`npm run icons`), and produces installers under `release/` (Windows NSIS, macOS DMG, Linux AppImage). Use `npm run dist:dir` for an unpacked directory only (no installer).
+### Publishing a release
 
-### Auto-updates (`electron-updater`)
-
-This follows the common **electron-builder + electron-updater** pattern (same tooling many Electron apps use):
-
-1. **Version** — The build stamps **`package.json` → `version`** into the app. At runtime the main process uses **`app.getVersion()`**; the UI shows it via **`window.electron.appGetVersion()`**. Tags and `package.json` must stay in sync (your release workflow already enforces this).
-
-2. **Where updates come from** — `electron-updater` reads **GitHub Releases** for the repo declared in **`package.json` → `repository`**. Set the `url` to your real GitHub repo (replace the `YOUR_GITHUB_ORG` placeholder in the template). electron-builder bakes the feed into the packaged app.
-
-3. **What to upload** — Each OS build outputs an installer **and** update metadata (`*.yml`, e.g. `latest.yml` / `latest-mac.yml` / `latest-linux.yml`) in `release/`. The **release workflow** attaches those YAML files next to the `.exe`, `.dmg`, and `.AppImage` so clients can compare versions and download the right asset for the current platform.
-
-4. **When it runs** — Update checks run only in **installed** builds, not in `npm run dev`. After launch, the app checks in the background; when a full update is downloaded, it offers **Restart now** to install.
-
-5. **macOS** — Unsigned builds may hit Gatekeeper or update limitations; **code signing** (and ideally **notarization**) is recommended for smooth updates in production.
-
-6. **Manual check** — The header includes **Check for updates**, or call **`window.electron.checkForUpdates()`** yourself. In dev it returns `{ ok: false, reason: 'development' }`; when packaged, `{ ok: true, isUpdateAvailable, availableVersion }` after the GitHub check finishes.
-
-### Publishing a release (maintainers)
-
-1. Set `version` in `package.json` to the release (for example `0.2.0`) and commit.
+1. Bump `version` in `package.json` and commit.
 2. Tag and push: `git tag -a v0.2.0 -m "v0.2.0"` then `git push origin v0.2.0`.
 
-The tag **must** be `v` plus the exact `package.json` version (e.g. tag `v0.2.0` ↔ version `0.2.0`). Pushing the tag runs GitHub Actions, which builds Windows, macOS, and Linux artifacts and attaches them to the GitHub Release for that tag (installers plus `*.yml` update metadata for auto-update).
+The tag must be `v` plus the exact version string (e.g. `v0.2.0` ↔ `0.2.0`). CI builds Windows, macOS, and Linux and attaches installers plus `*.yml` update metadata to that GitHub Release.
 
 ---
 
