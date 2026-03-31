@@ -23,7 +23,7 @@ function MirrorParts({ value }: { value: string }) {
         ) : (
           <span
             key={i}
-            className="text-sky-400 underline decoration-dotted decoration-slate-500/80 underline-offset-2"
+            className="text-sky-700 dark:text-sky-400 underline decoration-dotted decoration-slate-500/80 underline-offset-2"
           >
             {p.content}
           </span>
@@ -60,10 +60,10 @@ function charIndexFromClientX(input: HTMLInputElement, clientX: number): number 
 }
 
 const inputOverlayClass =
-  'absolute inset-0 z-10 w-full h-full bg-transparent text-transparent caret-emerald-400 border-0 outline-none focus:outline-none focus:ring-0 rounded box-border placeholder:text-slate-500 text-inherit'
+  'absolute inset-0 z-10 w-full h-full bg-transparent text-transparent caret-emerald-600 dark:caret-emerald-400 border-0 outline-none focus:outline-none focus:ring-0 rounded box-border placeholder:text-slate-500 dark:placeholder:text-slate-500 text-inherit'
 
 const mirrorBaseClass =
-  'pointer-events-none absolute inset-0 z-0 text-slate-100 box-border text-inherit'
+  'pointer-events-none absolute inset-0 z-0 text-slate-900 dark:text-slate-100 box-border text-inherit'
 
 type TooltipState = {
   x: number
@@ -144,7 +144,7 @@ export function InputWithVariableTooltips({
 
   return (
     <div
-      className={`relative min-h-[2.25rem] rounded border border-slate-600 bg-slate-800 focus-within:ring-1 focus-within:ring-emerald-600/50 ${className}`}
+      className={`relative min-h-[2.25rem] rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus-within:ring-1 focus-within:ring-emerald-600/50 ${className}`}
       onMouseLeave={onInputMouseLeave}
     >
       <input

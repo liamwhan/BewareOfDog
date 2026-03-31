@@ -10,13 +10,13 @@ import { tokenizeJson, type JsonToken, type JsonTokenKind } from '../../shared/j
 const TAB_SPACES = '    '
 
 export const JSON_KIND_CLASS: Record<JsonTokenKind, string> = {
-  key: 'text-sky-400',
-  keyword: 'text-violet-400',
-  string: 'text-emerald-400',
-  number: 'text-amber-400',
-  punctuation: 'text-slate-300',
-  whitespace: 'text-slate-100',
-  plain: 'text-slate-200'
+  key: 'text-sky-700 dark:text-sky-400',
+  keyword: 'text-violet-700 dark:text-violet-400',
+  string: 'text-emerald-800 dark:text-emerald-400',
+  number: 'text-amber-800 dark:text-amber-400',
+  punctuation: 'text-slate-600 dark:text-slate-300',
+  whitespace: 'text-slate-800 dark:text-slate-100',
+  plain: 'text-slate-800 dark:text-slate-200'
 }
 
 function JsonTokenSpans({ tokens }: { tokens: JsonToken[] }) {
@@ -110,7 +110,7 @@ export function JsonCodeTextarea({
     'w-full box-border px-3 py-2 text-sm font-mono leading-normal whitespace-pre tab-size-[4] overflow-auto resize-none'
 
   return (
-    <div className={`relative rounded border border-slate-600 bg-slate-800 ${className}`}>
+    <div className={`relative rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 ${className}`}>
       <pre
         ref={preRef}
         aria-hidden
@@ -129,7 +129,7 @@ export function JsonCodeTextarea({
         autoCapitalize="off"
         autoComplete="off"
         placeholder={placeholder}
-        className={`relative block ${layerClass} ${heightClass} border-0 bg-transparent text-transparent caret-slate-100 outline-none ring-0 focus:ring-0 placeholder:text-slate-500`}
+        className={`relative block ${layerClass} ${heightClass} border-0 bg-transparent text-transparent caret-slate-900 dark:caret-slate-100 outline-none ring-0 focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500`}
       />
     </div>
   )

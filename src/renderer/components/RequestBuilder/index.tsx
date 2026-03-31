@@ -190,7 +190,7 @@ export function RequestBuilder() {
         <select
           value={request.method}
           onChange={(e) => setMethod(e.target.value)}
-          className="px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm font-semibold text-emerald-400"
+          className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded text-sm font-semibold text-emerald-800 dark:text-emerald-400"
         >
           {METHODS.map((m) => (
             <option key={m} value={m}>
@@ -214,15 +214,15 @@ export function RequestBuilder() {
         </button>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-700 mb-2">
+      <div className="flex gap-2 border-b border-slate-300 dark:border-slate-700 mb-2">
         {(['params', 'query', 'headers', 'auth', 'body', 'scripts'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-3 py-2 text-sm capitalize ${
               activeTab === tab
-                ? 'text-emerald-400 border-b-2 border-emerald-400'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'text-emerald-700 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             {tab === 'auth' ? 'Authorization' : tab}
@@ -274,8 +274,10 @@ export function RequestBuilder() {
         )}
         {activeTab === 'scripts' && (
           <div className="space-y-2">
-            <p className="text-slate-400 text-sm mb-2">
-              JavaScript that runs after the response. Use <code className="bg-slate-800 px-1 rounded">bod</code> to access request, response, and variables.
+            <p className="text-slate-600 dark:text-slate-400 text-sm mb-2">
+              JavaScript that runs after the response. Use{' '}
+              <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-slate-800 dark:text-slate-200">bod</code> to
+              access request, response, and variables.
             </p>
             <JsCodeTextarea
               value={request.postRequestScript ?? ''}
@@ -295,7 +297,7 @@ if (json.token) {
 }`}
             />
             {scriptError && (
-              <p className="text-red-400 text-sm">Script error: {scriptError}</p>
+              <p className="text-red-600 dark:text-red-400 text-sm">Script error: {scriptError}</p>
             )}
           </div>
         )}

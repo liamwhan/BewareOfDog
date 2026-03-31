@@ -18,15 +18,15 @@ import { tokenizeJs, type JsTokenKind } from '../../shared/jsSyntaxTokens'
 const TAB_SPACES = '    '
 
 const KIND_CLASS: Record<JsTokenKind, string> = {
-  keyword: 'text-violet-400',
-  identifier: 'text-slate-200',
-  string: 'text-emerald-400',
-  number: 'text-amber-400',
-  comment: 'text-slate-500 italic',
-  operator: 'text-sky-400',
-  whitespace: 'text-slate-100',
-  punctuation: 'text-slate-300',
-  plain: 'text-slate-100'
+  keyword: 'text-violet-700 dark:text-violet-400',
+  identifier: 'text-slate-800 dark:text-slate-200',
+  string: 'text-emerald-800 dark:text-emerald-400',
+  number: 'text-amber-800 dark:text-amber-400',
+  comment: 'text-slate-600 dark:text-slate-500 italic',
+  operator: 'text-sky-700 dark:text-sky-400',
+  whitespace: 'text-slate-800 dark:text-slate-100',
+  punctuation: 'text-slate-600 dark:text-slate-300',
+  plain: 'text-slate-800 dark:text-slate-100'
 }
 
 export interface JsCodeTextareaProps {
@@ -241,7 +241,10 @@ export function JsCodeTextarea({
     'w-full box-border px-3 py-2 text-sm font-mono leading-normal whitespace-pre tab-size-[4] overflow-auto resize-none'
 
   return (
-    <div ref={containerRef} className={`relative rounded border border-slate-600 bg-slate-800 ${className}`}>
+    <div
+      ref={containerRef}
+      className={`relative rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 ${className}`}
+    >
       <pre
         ref={preRef}
         aria-hidden
@@ -271,7 +274,7 @@ export function JsCodeTextarea({
         autoCapitalize="off"
         autoComplete="off"
         placeholder={placeholder}
-        className={`relative block ${layerClass} ${heightClass} border-0 bg-transparent text-transparent caret-slate-100 outline-none ring-0 focus:ring-0 placeholder:text-slate-500`}
+        className={`relative block ${layerClass} ${heightClass} border-0 bg-transparent text-transparent caret-slate-900 dark:caret-slate-100 outline-none ring-0 focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500`}
       />
       {suggestions.length > 0 && (
         <div
@@ -283,7 +286,7 @@ export function JsCodeTextarea({
             top: popupPlacement.top,
             maxWidth: popupPlacement.maxWidth
           }}
-          className="absolute z-30 min-w-[10rem] max-h-36 overflow-y-auto rounded border border-slate-600 bg-slate-900 shadow-xl text-sm font-mono"
+          className="absolute z-30 min-w-[10rem] max-h-36 overflow-y-auto rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 shadow-xl text-sm font-mono"
         >
           {suggestions.map((s, i) => (
             <button
@@ -292,8 +295,10 @@ export function JsCodeTextarea({
               role="option"
               aria-selected={i === pickIndex}
               title={s.kind === 'method' ? 'Method' : 'Property'}
-              className={`flex w-full items-center gap-2 text-left px-2 py-1 hover:bg-slate-700/80 ${
-                i === pickIndex ? 'bg-slate-700 text-slate-100' : 'text-slate-200'
+              className={`flex w-full items-center gap-2 text-left px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-700/80 ${
+                i === pickIndex
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100'
+                  : 'text-slate-800 dark:text-slate-200'
               }`}
               onMouseDown={(e) => {
                 e.preventDefault()

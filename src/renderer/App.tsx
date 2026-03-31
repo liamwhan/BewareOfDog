@@ -224,10 +224,10 @@ export default function App() {
       <header className="border-b border-slate-300 dark:border-slate-700 px-4 py-2 flex items-center gap-4">
         <img src="./bod.png" alt="BewareOfDog" className="w-8 h-8 rounded-full shrink-0" />
         <h1 className="text-lg font-semibold">BewareOfDog</h1>
-        <span className="text-slate-500 dark:text-slate-400 text-sm">REST API Debugger</span>
+        <span className="text-slate-600 dark:text-slate-400 text-sm">REST API Debugger</span>
         <div className="flex items-center gap-2 min-w-0 shrink-0">
           {appVersion != null && (
-            <span className="text-slate-400 dark:text-slate-500 text-xs tabular-nums" title="Installed version">
+            <span className="text-slate-600 dark:text-slate-500 text-xs tabular-nums" title="Installed version">
               v{appVersion}
             </span>
           )}
@@ -253,14 +253,14 @@ export default function App() {
           )}
           {updateFeedback != null && (
             <span
-              className="text-xs text-slate-500 dark:text-slate-400 max-w-[min(520px,55vw)] whitespace-normal break-words leading-snug"
+              className="text-xs text-slate-700 dark:text-slate-400 max-w-[min(520px,55vw)] whitespace-normal break-words leading-snug"
               title={updateFeedback}
             >
               {updateFeedback}
             </span>
           )}
           {updateProgress != null && updateProgress > 0 && updateProgress < 100 && (
-            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+            <span className="text-xs text-slate-700 dark:text-slate-400 tabular-nums">
               {Math.round(updateProgress)}%
             </span>
           )}
@@ -276,7 +276,7 @@ export default function App() {
         <VariablesPanel />
         <button
           onClick={toggleTheme}
-          className="px-2 py-1 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
+          className="px-2 py-1 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
           title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
         >
           {theme === 'dark' ? '☀' : '☽'}

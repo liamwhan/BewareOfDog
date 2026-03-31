@@ -162,14 +162,14 @@ export function CollectionsPanel() {
       <div className="flex gap-2 mb-2">
         <button
           onClick={() => addCollection()}
-          className="px-2 py-1 text-sm text-emerald-400 hover:bg-slate-700 rounded"
+          className="px-2 py-1 text-sm text-emerald-700 dark:text-emerald-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
         >
           New Collection
         </button>
         <button
           type="button"
           onClick={() => setImportModalOpen(true)}
-          className="px-2 py-1 text-sm text-emerald-400 hover:bg-slate-700 rounded"
+          className="px-2 py-1 text-sm text-emerald-700 dark:text-emerald-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
         >
           Import
         </button>
@@ -179,8 +179,10 @@ export function CollectionsPanel() {
         {collections.map((coll, i) => (
           <div key={i} className="rounded overflow-hidden">
             <div
-              className={`flex items-center gap-1 py-1.5 px-2 hover:bg-slate-800 group ${
-                selectedCollectionSettingsIndex === i ? 'bg-slate-800/80 ring-1 ring-emerald-700/50' : ''
+              className={`flex items-center gap-1 py-1.5 px-2 hover:bg-slate-200 dark:hover:bg-slate-800 group ${
+                selectedCollectionSettingsIndex === i
+                  ? 'bg-slate-200 dark:bg-slate-800/80 ring-1 ring-emerald-600/50 dark:ring-emerald-700/50'
+                  : ''
               }`}
               onContextMenu={(e) => {
                 e.preventDefault()
@@ -194,7 +196,7 @@ export function CollectionsPanel() {
             >
               <button
                 type="button"
-                className="text-slate-400 w-4 shrink-0 hover:text-slate-200"
+                className="text-slate-600 dark:text-slate-400 w-4 shrink-0 hover:text-slate-900 dark:hover:text-slate-200"
                 onClick={(e) => {
                   e.stopPropagation()
                   toggleExpand(i)
@@ -214,11 +216,11 @@ export function CollectionsPanel() {
                     if (e.key === 'Escape') setEditing(null)
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="flex-1 px-1 py-0.5 text-sm bg-slate-700 border border-slate-500 rounded min-w-0"
+                  className="flex-1 px-1 py-0.5 text-sm bg-white dark:bg-slate-700 border border-slate-400 dark:border-slate-500 rounded min-w-0 text-slate-900 dark:text-slate-100"
                 />
               ) : (
                 <span
-                  className="flex-1 text-sm truncate cursor-pointer"
+                  className="flex-1 text-sm truncate cursor-pointer text-slate-800 dark:text-slate-100"
                   onClick={(e) => {
                     e.stopPropagation()
                     selectCollectionSettings(i)
@@ -241,7 +243,7 @@ export function CollectionsPanel() {
                   e.stopPropagation()
                   addRequest(i)
                 }}
-                className="opacity-0 group-hover:opacity-100 px-1 text-emerald-400 text-xs"
+                className="opacity-0 group-hover:opacity-100 px-1 text-emerald-700 dark:text-emerald-400 text-xs"
               >
                 +
               </button>
@@ -265,11 +267,11 @@ export function CollectionsPanel() {
                     }}
                     className={`py-1.5 px-2 text-sm cursor-pointer truncate flex items-center gap-2 ${
                       selectedRequestId === req.id
-                        ? 'bg-slate-700 text-emerald-400'
-                        : 'hover:bg-slate-800 text-slate-300'
+                        ? 'bg-emerald-100 dark:bg-slate-700 text-emerald-900 dark:text-emerald-400'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                     }`}
                   >
-                    <span className="font-mono text-xs text-slate-500 shrink-0">
+                    <span className="font-mono text-xs text-slate-600 dark:text-slate-500 shrink-0">
                       {req.method}
                     </span>
                     {editing?.type === 'request' && editing.requestId === req.id ? (
@@ -283,7 +285,7 @@ export function CollectionsPanel() {
                           if (e.key === 'Escape') setEditing(null)
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className="flex-1 min-w-0 px-1 py-0.5 text-sm bg-slate-700 border border-slate-500 rounded"
+                        className="flex-1 min-w-0 px-1 py-0.5 text-sm bg-white dark:bg-slate-700 border border-slate-400 dark:border-slate-500 rounded text-slate-900 dark:text-slate-100"
                       />
                     ) : (
                       <span
@@ -306,14 +308,14 @@ export function CollectionsPanel() {
 
       {contextMenu && (
         <div
-          className="fixed bg-slate-800 border border-slate-600 rounded shadow-lg py-1 z-50 min-w-32"
+          className="fixed bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded shadow-lg py-1 z-50 min-w-32"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           {contextMenu.type === 'collection' && (
             <>
               <button
                 onClick={() => handleRenameCollection(contextMenu.collectionIndex)}
-                className="w-full px-3 py-1.5 text-left text-sm hover:bg-slate-700"
+                className="w-full px-3 py-1.5 text-left text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 Rename
               </button>
@@ -322,7 +324,7 @@ export function CollectionsPanel() {
                   handleExport(contextMenu.collectionIndex)
                   setContextMenu(null)
                 }}
-                className="w-full px-3 py-1.5 text-left text-sm hover:bg-slate-700"
+                className="w-full px-3 py-1.5 text-left text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 Export
               </button>
@@ -331,7 +333,7 @@ export function CollectionsPanel() {
                   removeCollection(contextMenu.collectionIndex)
                   setContextMenu(null)
                 }}
-                className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-slate-700"
+                className="w-full px-3 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 Delete
               </button>
@@ -341,7 +343,7 @@ export function CollectionsPanel() {
             <>
               <button
                 onClick={() => handleRenameRequest(contextMenu.collectionIndex, contextMenu.request!)}
-                className="w-full px-3 py-1.5 text-left text-sm hover:bg-slate-700"
+                className="w-full px-3 py-1.5 text-left text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 Rename
               </button>
@@ -350,7 +352,7 @@ export function CollectionsPanel() {
                   removeRequest(contextMenu.collectionIndex, contextMenu.request!.id)
                   setContextMenu(null)
                 }}
-                className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-slate-700"
+                className="w-full px-3 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 Delete Request
               </button>

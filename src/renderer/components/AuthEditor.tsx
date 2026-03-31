@@ -58,12 +58,12 @@ export function AuthEditor(props: Props) {
       {!inherit && (
         <>
           <div>
-            <label className="block text-slate-400 mb-1">Type</label>
+            <label className="block text-slate-600 dark:text-slate-400 mb-1">Type</label>
             <select
               value={type}
               onChange={(e) => patch({ type: e.target.value as HttpAuthType })}
               disabled={props.mode === 'request' && inherit}
-              className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-slate-100"
+              className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded text-slate-900 dark:text-slate-100"
             >
               {AUTH_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -75,7 +75,7 @@ export function AuthEditor(props: Props) {
 
           {type === 'bearer' && (
             <div>
-              <label className="block text-slate-400 mb-1">Token</label>
+              <label className="block text-slate-600 dark:text-slate-400 mb-1">Token</label>
               {props.variableContext ? (
                 <InputWithVariableTooltips
                   value={bearerToken}
@@ -93,11 +93,14 @@ export function AuthEditor(props: Props) {
                   onChange={(e) => patch({ bearerToken: e.target.value })}
                   placeholder="{{accessToken}} or raw token"
                   autoComplete="off"
-                  className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded font-mono text-xs text-slate-100 placeholder-slate-500"
+                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded font-mono text-xs text-slate-900 dark:text-slate-100 placeholder-slate-500"
                 />
               )}
-              <p className="text-slate-500 text-xs mt-1">
-                Sent as <code className="bg-slate-800 px-1 rounded">Authorization: Bearer …</code>
+              <p className="text-slate-600 dark:text-slate-500 text-xs mt-1">
+                Sent as{' '}
+                <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-slate-800 dark:text-slate-200">
+                  Authorization: Bearer …
+                </code>
               </p>
             </div>
           )}
@@ -105,7 +108,7 @@ export function AuthEditor(props: Props) {
           {type === 'basic' && (
             <div className="space-y-2">
               <div>
-                <label className="block text-slate-400 mb-1">Username</label>
+                <label className="block text-slate-600 dark:text-slate-400 mb-1">Username</label>
                 {props.variableContext ? (
                   <InputWithVariableTooltips
                     value={username}
@@ -123,23 +126,26 @@ export function AuthEditor(props: Props) {
                     onChange={(e) => patch({ username: e.target.value })}
                     placeholder="{{apiUser}}"
                     autoComplete="off"
-                    className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded font-mono text-xs"
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded font-mono text-xs text-slate-900 dark:text-slate-100"
                   />
                 )}
               </div>
               <div>
-                <label className="block text-slate-400 mb-1">Password</label>
+                <label className="block text-slate-600 dark:text-slate-400 mb-1">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => patch({ password: e.target.value })}
                   placeholder="{{apiSecret}}"
                   autoComplete="off"
-                  className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded font-mono text-xs"
+                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded font-mono text-xs text-slate-900 dark:text-slate-100"
                 />
               </div>
-              <p className="text-slate-500 text-xs">
-                Encoded as Base64 for <code className="bg-slate-800 px-1 rounded">Authorization: Basic …</code>
+              <p className="text-slate-600 dark:text-slate-500 text-xs">
+                Encoded as Base64 for{' '}
+                <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-slate-800 dark:text-slate-200">
+                  Authorization: Basic …
+                </code>
               </p>
             </div>
           )}
@@ -147,7 +153,7 @@ export function AuthEditor(props: Props) {
       )}
 
       {props.mode === 'request' && inherit && (
-        <p className="text-slate-500 text-xs">
+        <p className="text-slate-600 dark:text-slate-500 text-xs">
           This request uses the collection Authorization settings. Edit them by clicking the collection name in the
           sidebar.
         </p>

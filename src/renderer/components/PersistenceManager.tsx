@@ -49,9 +49,10 @@ export function PersistenceManager() {
   const [lastSaveError, setLastSaveError] = useState<string | null>(null)
 
   const pullRemote = useCallback(
-    async (opts?: { silent?: boolean; skipIfUnchanged?: boolean }) => {
+    async (opts?: { silent?: boolean; skipIfUnchanged?: boolean; manualPull?: boolean }) => {
       const silent = opts?.silent ?? false
       const skipIfUnchanged = opts?.skipIfUnchanged ?? false
+      const manualPull = opts?.manualPull === true
       if (!silent) {
         setLoadError(null)
         setSaveConflict(false)
@@ -59,22 +60,44 @@ export function PersistenceManager() {
       const outcome = await loadWorkspace()
       if (outcome.error) {
         if (!silent) setLoadError(outcome.error)
+        if (manualPull) {
+          window.dispatchEvent(
+            new CustomEvent('bewareofdog:workspace-pull-done', {
+              detail: { error: outcome.error, manualPull: true }
+            })
+          )
+        }
         return
       }
       if (skipIfUnchanged && outcome.versionToken === versionTokenRef.current) {
+        if (manualPull) {
+          window.dispatchEvent(
+            new CustomEvent('bewareofdog:workspace-pull-done', {
+              detail: { error: undefined, manualPull: true }
+            })
+          )
+        }
         return
       }
       versionTokenRef.current = outcome.versionToken
       if (outcome.data) {
         applyWorkspaceToStores(outcome.data, lastSuccessfulResponseRef)
       }
+      if (manualPull) {
+        window.dispatchEvent(
+          new CustomEvent('bewareofdog:workspace-pull-done', {
+            detail: { error: undefined, manualPull: true }
+          })
+        )
+      }
     },
     []
   )
 
   useEffect(() => {
-    function onPullRequest() {
-      void pullRemote()
+    function onPullRequest(e: Event) {
+      const manualPull = (e as CustomEvent<{ manualPull?: boolean }>).detail?.manualPull === true
+      void pullRemote({ manualPull })
     }
     window.addEventListener('bewareofdog:workspace-pull', onPullRequest)
     return () => window.removeEventListener('bewareofdog:workspace-pull', onPullRequest)
